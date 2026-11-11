@@ -15,14 +15,14 @@ export default function Home() {
       <div className="brand"><div className="brand-mark">+</div><div><strong>Salud y Vida</strong><small>GESTIÓN FARMACÉUTICA</small></div></div>
       <div className="nav-label">PRINCIPAL</div>
       <div className="nav-item active"><span className="nav-icon">▦</span><span>Panel general</span></div>
-      <div className="nav-item"><span className="nav-icon">▣</span><span>Punto de venta</span></div>
+      <a className="nav-item" href="/ventas" style={{textDecoration:"none"}}><span className="nav-icon">▣</span><span>Punto de venta</span></a>
       <a className="nav-item" href="/productos" style={{textDecoration:"none"}}><span className="nav-icon">◫</span><span>Productos</span></a>
       <a className="nav-item" href="/inventario" style={{textDecoration:"none"}}><span className="nav-icon">▤</span><span>Inventario y lotes</span></a>
       <div className="nav-label">OPERACIONES</div>
-      <div className="nav-item"><span className="nav-icon">⇩</span><span>Compras</span></div>
+      <a className="nav-item" href="/compras" style={{textDecoration:"none"}}><span className="nav-icon">⇩</span><span>Compras</span></a>
       <a className="nav-item" href="/proveedores" style={{textDecoration:"none"}}><span className="nav-icon">♧</span><span>Proveedores</span></a>
-      <div className="nav-item"><span className="nav-icon">♙</span><span>Clientes</span></div>
-      <div className="nav-item"><span className="nav-icon">▤</span><span>Caja</span></div>
+      <a className="nav-item" href="/clientes" style={{textDecoration:"none"}}><span className="nav-icon">♙</span><span>Clientes</span></a>
+      <a className="nav-item" href="/caja" style={{textDecoration:"none"}}><span className="nav-icon">▤</span><span>Caja</span></a>
       <div className="nav-label">ADMINISTRACIÓN</div>
       <div className="nav-item"><span className="nav-icon">▥</span><span>Reportes</span></div>
       <div className="nav-item"><span className="nav-icon">⚙</span><span>Configuración</span></div>
@@ -35,7 +35,7 @@ export default function Home() {
         <div className="stats">{stats.map(s=><div className="card" key={s.label}><div className="stat-top"><span>{s.label}</span><span className="stat-icon">{s.icon}</span></div><div className="stat-value">{s.value}</div><div className="stat-note">{s.note}</div></div>)}</div>
         <div className="panel-grid">
           <div className="card"><h2 className="panel-title">Actividad de ventas</h2><p className="panel-sub">Resumen de ingresos recientes</p><div className="empty"><div className="empty-mark">⌁</div>Cuando registres ventas, aquí aparecerá tu actividad.<br/>Los datos se mostrarán en quetzales (Q).</div></div>
-          <div className="card"><h2 className="panel-title">Accesos rápidos</h2><p className="panel-sub">Tareas frecuentes de tu farmacia</p><div className="action-list">{actions.map(a=><a className="action" key={a.title} href={a.title.includes("producto")?"/productos":a.title.includes("compra")?"/proveedores":"/productos"} style={{textDecoration:"none",color:"inherit"}}><div className="action-icon">{a.icon}</div><div><b>{a.title}</b><small>{a.desc}</small></div></a>)}</div></div>
+          <div className="card"><h2 className="panel-title">Accesos rápidos</h2><p className="panel-sub">Tareas frecuentes de tu farmacia</p><div className="action-list">{actions.map(a=><a className="action" key={a.title} href={a.title.includes("venta")?"/ventas":a.title.includes("compra")?"/compras":"/productos"} style={{textDecoration:"none",color:"inherit"}}><div className="action-icon">{a.icon}</div><div><b>{a.title}</b><small>{a.desc}</small></div></a>)}</div></div>
         </div>
         <div style={{marginTop:18,display:"flex",justifyContent:"flex-end"}}><span className="status">● &nbsp; Modo de configuración</span></div>
       </section>
