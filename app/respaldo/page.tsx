@@ -66,7 +66,7 @@ export default function BackupPage(){
       const url=URL.createObjectURL(blob);
       const a=document.createElement("a");
       a.href=url;a.download=`salud-y-vida-respaldo-${getGuatemalaDate()}.json`;
-      document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+      document.body.appendChild(a);a.click();a.remove();window.setTimeout(()=>URL.revokeObjectURL(url),1000);
       const total=Object.values(tables).reduce((sum,rows)=>sum+rows.length,0);
       setMessage(`Respaldo descargado correctamente: ${total} registros en ${TABLES.length} tablas.`);
     }catch(error){
