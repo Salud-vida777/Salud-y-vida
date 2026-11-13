@@ -37,7 +37,8 @@ export default function HistoryPage(){
  const filtered=useMemo(()=>rows.filter(s=>String(s.sale_number).includes(search.trim())||(s.customer?.full_name||"").toLowerCase().includes(search.toLowerCase())),[rows,search]);
  const returnedTotal=(s:Sale)=>s.sale_returns.reduce((n,r)=>n+Number(r.total),0);
  const available=(line:SaleLine)=>Number(line.quantity)-line.returns.reduce((n,r)=>n+Number(r.quantity),0);
- const refundTotal=selected?selected.sale_items.reduce((sum,line)=>{const q=Number(qty[line.id]||0);return sum+(available(line)>0?q*Number(line.line_total)/Number(line.quantity):0)},0):0;
+ function lineRefundAmount(line:SaleLine){if(!selected)return 0;const ordered=[...selected.sale_items].sort((a,b)=>a.id.localeCompare(b.id));const base=ordered.reduce((n,x)=>n+Number(x.line_total),0);const last=ordered[ordered.length-1]?.id;const roundedShare=(x:SaleLine)=>Math.round((Number(selected.discount)*(Number(x.line_total)/base)+Number.EPSILON)*100)/100;const share=line.id===last?Number(selected.discount)-ordered.filter(x=>x.id!==last).reduce((n,x)=>n+roundedShare(x),0):roundedShare(line);const effective=Number(line.line_total)-share;const q=Number(qty[line.id]||0);const remaining=available(line);const previouslyRefunded=line.returns.reduce((n,x)=>n+Number(x.line_total),0);if(q<=0||remaining<=0)return 0;const amount=q===remaining?effective-previouslyRefunded:Math.round((effective/Number(line.quantity)*q+Number.EPSILON)*100)/100;return Math.max(0,Math.round((amount+Number.EPSILON)*100)/100);}
+ const refundTotal=selected?selected.sale_items.reduce((sum,line)=>sum+lineRefundAmount(line),0):0;
  function print(s:Sale){setSelected(s);setTimeout(()=>window.print(),100);}
  async function submitReturn(){
   if(!selected)return;
