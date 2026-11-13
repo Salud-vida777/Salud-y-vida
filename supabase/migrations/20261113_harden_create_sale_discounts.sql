@@ -198,3 +198,163 @@ GRANT SELECT ON TABLE
   public.sale_return_items,
   public.sale_return_payments
 TO authenticated;
+
+-- Allocate purchase discounts into inventory cost and maintain weighted lot costs.
+CREATE OR REPLACE FUNCTION public.receive_purchase(
+  p_supplier_id uuid,
+  p_invoice_number text,
+  p_items jsonb,
+  p_discount numeric DEFAULT 0,
+  p_notes text DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'auth', 'pg_temp'
+SET timezone TO 'America/Guatemala'
+AS $function$
+DECLARE
+  v_user uuid := auth.uid();
+  v_role text;
+  v_purchase uuid;
+  v_item jsonb;
+  v_product uuid;
+  v_qty numeric;
+  v_cost numeric;
+  v_net_cost numeric(12,2);
+  v_total numeric(12,2) := 0;
+  v_subtotal numeric(12,2) := 0;
+  v_discount numeric(12,2) := coalesce(p_discount, 0);
+  v_line numeric(12,2);
+  v_line_discount numeric(12,2);
+  v_allocated_discount numeric(12,2) := 0;
+  v_item_count integer;
+  v_item_index integer := 0;
+  v_lot text;
+  v_exp date;
+  v_batch uuid;
+BEGIN
+  IF v_user IS NULL THEN RAISE EXCEPTION 'Debes iniciar sesión.'; END IF;
+
+  SELECT role INTO v_role FROM public.profiles WHERE id = v_user AND active = true;
+  IF coalesce(v_role, '') NOT IN ('admin', 'manager', 'inventory') THEN
+    RAISE EXCEPTION 'No tienes permiso para registrar compras.';
+  END IF;
+
+  IF coalesce(jsonb_typeof(p_items), '') <> 'array' OR jsonb_array_length(p_items) = 0 THEN
+    RAISE EXCEPTION 'Agrega al menos un producto.';
+  END IF;
+  IF v_discount < 0 THEN RAISE EXCEPTION 'Descuento inválido.'; END IF;
+  IF v_discount > 0 AND v_role NOT IN ('admin', 'manager') THEN
+    RAISE EXCEPTION 'Solo administrador o encargado puede autorizar descuentos.';
+  END IF;
+
+  v_item_count := jsonb_array_length(p_items);
+
+  FOR v_item IN SELECT * FROM jsonb_array_elements(p_items) LOOP
+    v_qty := (v_item->>'quantity')::numeric;
+    v_cost := (v_item->>'unit_cost')::numeric;
+    v_exp := nullif(v_item->>'expiration_date', '')::date;
+
+    IF v_qty IS NULL OR v_cost IS NULL OR v_qty <= 0 OR v_cost < 0
+       OR nullif(v_item->>'lot_number', '') IS NULL THEN
+      RAISE EXCEPTION 'Cantidad, costo y lote son obligatorios.';
+    END IF;
+    IF v_exp IS NOT NULL AND v_exp < current_date THEN
+      RAISE EXCEPTION 'No se puede recibir un lote vencido.';
+    END IF;
+
+    PERFORM 1 FROM public.products
+    WHERE id = (v_item->>'product_id')::uuid AND active = true;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Producto no válido o inactivo.'; END IF;
+
+    v_subtotal := v_subtotal + round(v_qty * v_cost, 2);
+  END LOOP;
+
+  IF v_discount > v_subtotal THEN RAISE EXCEPTION 'El descuento supera el subtotal.'; END IF;
+  v_total := round(v_subtotal - v_discount, 2);
+
+  INSERT INTO public.purchases(
+    supplier_id, invoice_number, status, subtotal, discount, total, notes, created_by
+  )
+  VALUES(
+    p_supplier_id, nullif(p_invoice_number, ''), 'received',
+    v_subtotal, v_discount, v_total, p_notes, v_user
+  )
+  RETURNING id INTO v_purchase;
+
+  FOR v_item IN SELECT * FROM jsonb_array_elements(p_items) LOOP
+    v_item_index := v_item_index + 1;
+    v_product := (v_item->>'product_id')::uuid;
+    v_qty := (v_item->>'quantity')::numeric;
+    v_cost := (v_item->>'unit_cost')::numeric;
+    v_lot := v_item->>'lot_number';
+    v_exp := nullif(v_item->>'expiration_date', '')::date;
+    v_line := round(v_qty * v_cost, 2);
+
+    IF v_item_index = v_item_count THEN
+      v_line_discount := v_discount - v_allocated_discount;
+    ELSIF v_subtotal > 0 THEN
+      v_line_discount := round(v_discount * v_line / v_subtotal, 2);
+      v_allocated_discount := v_allocated_discount + v_line_discount;
+    ELSE
+      v_line_discount := 0;
+    END IF;
+
+    v_net_cost := CASE WHEN v_qty > 0
+      THEN round((v_line - v_line_discount) / v_qty, 2)
+      ELSE 0
+    END;
+
+    INSERT INTO public.product_batches(
+      product_id, lot_number, expiration_date, quantity, cost_price
+    )
+    VALUES(v_product, v_lot, v_exp, v_qty, v_net_cost)
+    ON CONFLICT(product_id, lot_number) DO UPDATE
+    SET
+      quantity = public.product_batches.quantity + EXCLUDED.quantity,
+      cost_price = CASE
+        WHEN public.product_batches.quantity + EXCLUDED.quantity > 0
+        THEN round(
+          (public.product_batches.quantity * public.product_batches.cost_price
+            + EXCLUDED.quantity * EXCLUDED.cost_price)
+          / (public.product_batches.quantity + EXCLUDED.quantity), 2
+        )
+        ELSE EXCLUDED.cost_price
+      END
+    WHERE public.product_batches.expiration_date IS NOT DISTINCT FROM EXCLUDED.expiration_date
+    RETURNING id INTO v_batch;
+
+    IF v_batch IS NULL THEN
+      RAISE EXCEPTION 'El lote % ya existe con una fecha de vencimiento diferente.', v_lot;
+    END IF;
+
+    INSERT INTO public.purchase_items(
+      purchase_id, product_id, batch_id, quantity, unit_cost, line_total
+    )
+    VALUES(v_purchase, v_product, v_batch, v_qty, v_cost, v_line);
+
+    UPDATE public.products
+    SET cost_price = coalesce(
+      (
+        SELECT round(sum(quantity * cost_price) / nullif(sum(quantity), 0), 2)
+        FROM public.product_batches
+        WHERE product_id = v_product AND quantity > 0
+      ),
+      v_net_cost
+    )
+    WHERE id = v_product;
+  END LOOP;
+
+  INSERT INTO public.audit_logs(user_id, action, entity, entity_id, details)
+  VALUES(
+    v_user, 'receive', 'purchase', v_purchase::text,
+    jsonb_build_object('total', v_total, 'items', v_item_count, 'discount', v_discount)
+  );
+
+  RETURN jsonb_build_object('purchase_id', v_purchase, 'total', v_total);
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.receive_purchase(uuid,text,jsonb,numeric,text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.receive_purchase(uuid,text,jsonb,numeric,text) TO authenticated;
