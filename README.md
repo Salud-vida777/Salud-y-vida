@@ -37,3 +37,7 @@ Nunca colocar claves service_role/secret en el navegador ni en GitHub.
 - El proyecto está en etapa de puesta en marcha. Antes de cargar inventario real, ejecutar pruebas controladas de compras, lotes, vencimientos, venta y caja.
 - FEL/SAT Guatemala no está integrada todavía; debe completarse y validarse con un proveedor autorizado antes de emitir documentos tributarios desde el sistema.
 - Respaldar los datos periódicamente. Los planes gratuitos tienen límites de uso y no garantizan operación ilimitada.
+
+## Guía de operación
+
+Consulta [la guía operativa en español](docs/GUIA_OPERATIVA.md) para abrir/cerrar caja, registrar ventas y compras, reimprimir tickets, procesar devoluciones y conocer las limitaciones actuales de FEL.
