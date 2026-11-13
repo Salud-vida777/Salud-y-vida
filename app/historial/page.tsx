@@ -3,6 +3,7 @@ import {useCallback,useEffect,useMemo,useState} from "react";
 import Link from "next/link";
 import {useRouter} from "next/navigation";
 import {getSupabase} from "@/lib/supabase";
+import {getGuatemalaDate,guatemalaDateToIso} from "@/lib/date";
 
 type ReturnLine={quantity:number;restocked:boolean;line_total:number};
 type SaleLine={id:string;product_id:string;batch_id:string|null;quantity:number;unit_price:number;unit_cost:number;line_total:number;product:{name:string}|null;batch:{lot_number:string|null;expiration_date:string|null}|null;returns:ReturnLine[]};
@@ -16,8 +17,8 @@ export default function HistoryPage(){
  const [selected,setSelected]=useState<Sale|null>(null);
  const [role,setRole]=useState("");
  const [search,setSearch]=useState("");
- const [from,setFrom]=useState(new Date().toISOString().slice(0,10));
- const [to,setTo]=useState(new Date().toISOString().slice(0,10));
+ const [from,setFrom]=useState(getGuatemalaDate());
+ const [to,setTo]=useState(getGuatemalaDate());
  const [qty,setQty]=useState<Record<string,string>>({});
  const [restock,setRestock]=useState<Record<string,boolean>>({});
  const [reason,setReason]=useState("");
@@ -29,7 +30,7 @@ export default function HistoryPage(){
   if(!session){router.replace("/login");return;}
   const {data:profile}=await sb.from("profiles").select("role,active").eq("id",session.user.id).maybeSingle();
   if(!profile?.active){await sb.auth.signOut();router.replace("/login");return;}setRole(profile.role);
-  const start=new Date(from+"T00:00:00").toISOString();const end=new Date(to+"T23:59:59.999").toISOString();
+  const start=guatemalaDateToIso(from);const end=guatemalaDateToIso(to,true);
   const {data,error}=await sb.from("sales").select("id,sale_number,status,subtotal,discount,total,amount_paid,change_due,sold_at,customer:customers(full_name),sale_items(id,product_id,batch_id,quantity,unit_price,unit_cost,line_total,product:products(name),batch:product_batches(lot_number,expiration_date),returns:sale_return_items(quantity,restocked,line_total)),sale_payments(method,amount),sale_returns(id,return_number,reason,total,refunded_at,sale_return_payments(method,amount))").gte("sold_at",start).lte("sold_at",end).order("sold_at",{ascending:false}).limit(500);
   if(error){setMsg(error.message);return;}setRows((data||[]) as unknown as Sale[]);setMsg("");
  },[from,to,router]);
