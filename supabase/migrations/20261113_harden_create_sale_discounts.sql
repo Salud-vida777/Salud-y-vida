@@ -165,3 +165,36 @@ GRANT EXECUTE ON FUNCTION public.create_sale(jsonb,jsonb,uuid,numeric,text) TO a
 ALTER FUNCTION public.create_sale(jsonb,jsonb,uuid,numeric,text) SET timezone TO 'America/Guatemala';
 ALTER FUNCTION public.create_sale_return(uuid,jsonb,jsonb,text) SET timezone TO 'America/Guatemala';
 ALTER FUNCTION public.receive_purchase(uuid,text,jsonb,numeric,text) SET timezone TO 'America/Guatemala';
+
+-- Transactional tables are read-only through the Data API; writes go through guarded RPCs.
+REVOKE ALL ON TABLE
+  public.profiles,
+  public.product_batches,
+  public.sales,
+  public.sale_items,
+  public.sale_payments,
+  public.purchases,
+  public.purchase_items,
+  public.cash_sessions,
+  public.cash_movements,
+  public.audit_logs,
+  public.sale_returns,
+  public.sale_return_items,
+  public.sale_return_payments
+FROM anon, authenticated;
+
+GRANT SELECT ON TABLE
+  public.profiles,
+  public.product_batches,
+  public.sales,
+  public.sale_items,
+  public.sale_payments,
+  public.purchases,
+  public.purchase_items,
+  public.cash_sessions,
+  public.cash_movements,
+  public.audit_logs,
+  public.sale_returns,
+  public.sale_return_items,
+  public.sale_return_payments
+TO authenticated;
