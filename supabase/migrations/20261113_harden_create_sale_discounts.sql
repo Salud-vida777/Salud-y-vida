@@ -473,3 +473,6 @@ GRANT SELECT ON TABLE public.inventory_adjustments TO authenticated;
 DROP POLICY IF EXISTS profiles_read ON public.profiles;
 CREATE POLICY profiles_read ON public.profiles FOR SELECT TO authenticated
 USING (public.current_app_role() IN ('admin','manager') OR id = (SELECT auth.uid()));
+
+-- Anonymous users do not need direct sequence access.
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon;
