@@ -293,9 +293,9 @@ BEGIN
     v_line := round(v_qty * v_cost, 2);
 
     IF v_item_index = v_item_count THEN
-      v_line_discount := v_discount - v_allocated_discount;
+      v_line_discount := greatest(v_discount - v_allocated_discount, 0);
     ELSIF v_subtotal > 0 THEN
-      v_line_discount := round(v_discount * v_line / v_subtotal, 2);
+      v_line_discount := least(greatest(v_discount - v_allocated_discount, 0), round(v_discount * v_line / v_subtotal, 2));
       v_allocated_discount := v_allocated_discount + v_line_discount;
     ELSE
       v_line_discount := 0;
