@@ -417,3 +417,54 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.add_cash_movement(uuid,text,numeric,text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.add_cash_movement(uuid,text,numeric,text) TO authenticated;
+
+-- Split management policies from read policies and keep all public tables inaccessible to anon.
+-- Remove redundant ALL policies so SELECT is evaluated only by the read policy.
+DROP POLICY IF EXISTS categories_manage ON public.categories;
+CREATE POLICY categories_insert_manage ON public.categories FOR INSERT TO authenticated
+  WITH CHECK (public.current_app_role() IN ('admin','manager','inventory'));
+CREATE POLICY categories_update_manage ON public.categories FOR UPDATE TO authenticated
+  USING (public.current_app_role() IN ('admin','manager','inventory'))
+  WITH CHECK (public.current_app_role() IN ('admin','manager','inventory'));
+CREATE POLICY categories_delete_manage ON public.categories FOR DELETE TO authenticated
+  USING (public.current_app_role() IN ('admin','manager','inventory'));
+
+DROP POLICY IF EXISTS customers_manage ON public.customers;
+CREATE POLICY customers_insert_manage ON public.customers FOR INSERT TO authenticated
+  WITH CHECK (public.current_app_role() IN ('admin','manager','cashier'));
+CREATE POLICY customers_update_manage ON public.customers FOR UPDATE TO authenticated
+  USING (public.current_app_role() IN ('admin','manager','cashier'))
+  WITH CHECK (public.current_app_role() IN ('admin','manager','cashier'));
+CREATE POLICY customers_delete_manage ON public.customers FOR DELETE TO authenticated
+  USING (public.current_app_role() IN ('admin','manager','cashier'));
+
+DROP POLICY IF EXISTS products_manage ON public.products;
+CREATE POLICY products_insert_manage ON public.products FOR INSERT TO authenticated
+  WITH CHECK (public.current_app_role() IN ('admin','manager','inventory'));
+CREATE POLICY products_update_manage ON public.products FOR UPDATE TO authenticated
+  USING (public.current_app_role() IN ('admin','manager','inventory'))
+  WITH CHECK (public.current_app_role() IN ('admin','manager','inventory'));
+CREATE POLICY products_delete_manage ON public.products FOR DELETE TO authenticated
+  USING (public.current_app_role() IN ('admin','manager','inventory'));
+
+DROP POLICY IF EXISTS suppliers_manage ON public.suppliers;
+CREATE POLICY suppliers_insert_manage ON public.suppliers FOR INSERT TO authenticated
+  WITH CHECK (public.current_app_role() IN ('admin','manager','inventory'));
+CREATE POLICY suppliers_update_manage ON public.suppliers FOR UPDATE TO authenticated
+  USING (public.current_app_role() IN ('admin','manager','inventory'))
+  WITH CHECK (public.current_app_role() IN ('admin','manager','inventory'));
+CREATE POLICY suppliers_delete_manage ON public.suppliers FOR DELETE TO authenticated
+  USING (public.current_app_role() IN ('admin','manager','inventory'));
+
+DROP POLICY IF EXISTS batches_manage ON public.product_batches;
+DROP POLICY IF EXISTS purchase_items_manage ON public.purchase_items;
+DROP POLICY IF EXISTS purchases_manage ON public.purchases;
+
+DROP POLICY IF EXISTS profiles_read_admin ON public.profiles;
+DROP POLICY IF EXISTS profiles_read_self ON public.profiles;
+CREATE POLICY profiles_read ON public.profiles FOR SELECT TO authenticated
+  USING (public.current_app_role() IN ('admin','manager') OR id = auth.uid());
+
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon;
+REVOKE ALL ON TABLE public.inventory_adjustments FROM authenticated;
+GRANT SELECT ON TABLE public.inventory_adjustments TO authenticated;
