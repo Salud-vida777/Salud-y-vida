@@ -359,3 +359,61 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.receive_purchase(uuid,text,jsonb,numeric,text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.receive_purchase(uuid,text,jsonb,numeric,text) TO authenticated;
+
+-- Serialize cash movements against cash closing to prevent a movement racing a close.
+CREATE OR REPLACE FUNCTION public.add_cash_movement(
+  p_session_id uuid,
+  p_type text,
+  p_amount numeric,
+  p_reason text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'auth', 'pg_temp'
+AS $function$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_role text;
+BEGIN
+  IF v_uid IS NULL THEN RAISE EXCEPTION 'Debes iniciar sesión.'; END IF;
+
+  SELECT role INTO v_role
+  FROM public.profiles
+  WHERE id = v_uid AND active = true;
+
+  IF coalesce(v_role, '') NOT IN ('admin', 'manager', 'cashier') THEN
+    RAISE EXCEPTION 'No tienes permiso para registrar movimientos.';
+  END IF;
+
+  IF p_type NOT IN ('in', 'out') OR p_amount IS NULL OR p_amount <= 0
+     OR length(trim(coalesce(p_reason, ''))) < 2 THEN
+    RAISE EXCEPTION 'Datos de movimiento inválidos.';
+  END IF;
+
+  PERFORM 1
+  FROM public.cash_sessions
+  WHERE id = p_session_id
+    AND status = 'open'
+    AND (opened_by = v_uid OR v_role IN ('admin', 'manager'))
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Caja cerrada o sin autorización.';
+  END IF;
+
+  INSERT INTO public.cash_movements(session_id, type, amount, reason, created_by)
+  VALUES(p_session_id, p_type, p_amount, trim(p_reason), v_uid);
+
+  INSERT INTO public.audit_logs(user_id, action, entity, entity_id, details)
+  VALUES(
+    v_uid, 'cash_movement', 'cash_session', p_session_id::text,
+    jsonb_build_object('type', p_type, 'amount', p_amount, 'reason', p_reason)
+  );
+
+  RETURN jsonb_build_object('success', true);
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.add_cash_movement(uuid,text,numeric,text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.add_cash_movement(uuid,text,numeric,text) TO authenticated;
