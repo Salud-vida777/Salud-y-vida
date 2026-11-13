@@ -306,6 +306,7 @@ BEGIN
       ELSE 0
     END;
 
+    v_batch := NULL;
     INSERT INTO public.product_batches(
       product_id, lot_number, expiration_date, quantity, cost_price
     )
