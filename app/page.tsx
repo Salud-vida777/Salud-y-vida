@@ -1,44 +1,9 @@
-const stats = [
-  { label: "Ventas de hoy", value: "Q 0.00", note: "Sin ventas registradas", icon: "↗" },
-  { label: "Productos activos", value: "0", note: "Catálogo por configurar", icon: "▦" },
-  { label: "Stock bajo", value: "0", note: "Productos por reabastecer", icon: "⚑" },
-  { label: "Vencimientos próximos", value: "0", note: "Lotes por revisar", icon: "◷" },
-];
-const actions = [
-  { icon: "＋", title: "Registrar una venta", desc: "Cobrar productos y emitir ticket" },
-  { icon: "▦", title: "Agregar productos", desc: "Crear el catálogo de medicamentos" },
-  { icon: "⇩", title: "Registrar una compra", desc: "Ingresar mercadería y lotes" },
-];
-export default function Home() {
-  return <div className="shell">
-    <aside className="sidebar">
-      <div className="brand"><div className="brand-mark">+</div><div><strong>Salud y Vida</strong><small>GESTIÓN FARMACÉUTICA</small></div></div>
-      <div className="nav-label">PRINCIPAL</div>
-      <div className="nav-item active"><span className="nav-icon">▦</span><span>Panel general</span></div>
-      <a className="nav-item" href="/ventas" style={{textDecoration:"none"}}><span className="nav-icon">▣</span><span>Punto de venta</span></a>
-      <a className="nav-item" href="/productos" style={{textDecoration:"none"}}><span className="nav-icon">◫</span><span>Productos</span></a>
-      <a className="nav-item" href="/inventario" style={{textDecoration:"none"}}><span className="nav-icon">▤</span><span>Inventario y lotes</span></a>
-      <div className="nav-label">OPERACIONES</div>
-      <a className="nav-item" href="/compras" style={{textDecoration:"none"}}><span className="nav-icon">⇩</span><span>Compras</span></a>
-      <a className="nav-item" href="/proveedores" style={{textDecoration:"none"}}><span className="nav-icon">♧</span><span>Proveedores</span></a>
-      <a className="nav-item" href="/clientes" style={{textDecoration:"none"}}><span className="nav-icon">♙</span><span>Clientes</span></a>
-      <a className="nav-item" href="/caja" style={{textDecoration:"none"}}><span className="nav-icon">▤</span><span>Caja</span></a>
-      <div className="nav-label">ADMINISTRACIÓN</div>
-      <div className="nav-item"><span className="nav-icon">▥</span><span>Reportes</span></div>
-      <div className="nav-item"><span className="nav-icon">⚙</span><span>Configuración</span></div>
-      <div className="sidebar-bottom">Salud y Vida POS<br/>Versión inicial · Guatemala</div>
-    </aside>
-    <main className="main">
-      <header className="topbar"><div className="breadcrumb">Salud y Vida <span style={{margin:"0 8px",color:"#bdc9c2"}}>/</span> <b>Panel general</b></div><div className="user"><a href="/login" style={{color:"#087e61",textDecoration:"none",fontSize:12}}>Acceso al sistema ↗</a></div></header>
-      <section className="content">
-        <div className="heading"><div><div className="eyebrow">RESUMEN DEL NEGOCIO</div><h1>Panel general</h1><p className="sub">Bienvenido al centro de operaciones de tu farmacia.</p></div><div className="date-pill">◷ &nbsp; Operación en quetzales · GTQ</div></div>
-        <div className="stats">{stats.map(s=><div className="card" key={s.label}><div className="stat-top"><span>{s.label}</span><span className="stat-icon">{s.icon}</span></div><div className="stat-value">{s.value}</div><div className="stat-note">{s.note}</div></div>)}</div>
-        <div className="panel-grid">
-          <div className="card"><h2 className="panel-title">Actividad de ventas</h2><p className="panel-sub">Resumen de ingresos recientes</p><div className="empty"><div className="empty-mark">⌁</div>Cuando registres ventas, aquí aparecerá tu actividad.<br/>Los datos se mostrarán en quetzales (Q).</div></div>
-          <div className="card"><h2 className="panel-title">Accesos rápidos</h2><p className="panel-sub">Tareas frecuentes de tu farmacia</p><div className="action-list">{actions.map(a=><a className="action" key={a.title} href={a.title.includes("venta")?"/ventas":a.title.includes("compra")?"/compras":"/productos"} style={{textDecoration:"none",color:"inherit"}}><div className="action-icon">{a.icon}</div><div><b>{a.title}</b><small>{a.desc}</small></div></a>)}</div></div>
-        </div>
-        <div style={{marginTop:18,display:"flex",justifyContent:"flex-end"}}><span className="status">● &nbsp; Modo de configuración</span></div>
-      </section>
-    </main>
-  </div>;
-}
+"use client";
+import {useEffect,useState} from "react";import {useRouter} from "next/navigation";import {getSupabase} from "@/lib/supabase";
+type Metric={sales:number;revenue:number;products:number;low:number;expiring:number};
+const links=[["▣","Punto de venta","/ventas"],["◫","Productos","/productos"],["▤","Inventario y lotes","/inventario"],["⇩","Compras","/compras"],["♧","Proveedores","/proveedores"],["♙","Clientes","/clientes"],["▤","Caja","/caja"],["▥","Reportes","/reportes"],["⚙","Usuarios y permisos","/usuarios"]];
+export default function Home(){const router=useRouter();const [name,setName]=useState("Equipo de farmacia");const [m,setM]=useState<Metric>({sales:0,revenue:0,products:0,low:0,expiring:0});const [loading,setLoading]=useState(true);const [error,setError]=useState("");
+useEffect(()=>{(async()=>{try{const sb=getSupabase();const {data:{session}}=await sb.auth.getSession();if(!session){router.replace("/login");return;}const [profile,sales,products,batches]=await Promise.all([sb.from("profiles").select("full_name,role").eq("id",session.user.id).maybeSingle(),sb.from("sales").select("id,total").eq("status","completed").gte("sold_at",new Date(new Date().setHours(0,0,0,0)).toISOString()),sb.from("products").select("id,min_stock,active").eq("active",true),sb.from("product_batches").select("product_id,quantity,expiration_date")]);if(profile.data?.full_name)setName(profile.data.full_name);if(sales.error||products.error||batches.error)throw new Error(sales.error?.message||products.error?.message||batches.error?.message);const stock:Record<string,number>={};let expiring=0;for(const b of batches.data||[]){if(!b.expiration_date||b.expiration_date>=new Date().toISOString().slice(0,10))stock[b.product_id]=(stock[b.product_id]||0)+Number(b.quantity);if(b.expiration_date){const days=(new Date(b.expiration_date+"T00:00:00").getTime()-new Date(new Date().toISOString().slice(0,10)+"T00:00:00").getTime())/86400000;if(days>=0&&days<=90&&Number(b.quantity)>0)expiring++;}}const low=(products.data||[]).filter(p=>(stock[p.id]||0)<Number(p.min_stock)).length;setM({sales:sales.data?.length||0,revenue:(sales.data||[]).reduce((a,x)=>a+Number(x.total),0),products:products.data?.length||0,low,expiring});}catch(e){setError(e instanceof Error?e.message:"No se pudo cargar el panel.");}finally{setLoading(false);}})()},[router]);
+async function logout(){await getSupabase().auth.signOut();router.replace("/login");}
+const stats=[["Ventas de hoy",String(m.sales),"Operaciones completadas"],["Ingresos de hoy","Q "+m.revenue.toFixed(2),"Ventas registradas hoy"],["Productos activos",String(m.products),"En el catálogo"],["Stock bajo",String(m.low),"Requieren reposición"],["Vencimientos próximos",String(m.expiring),"Lotes que vencen en 90 días"]];
+return <div className="shell"><aside className="sidebar"><div className="brand"><div className="brand-mark">+</div><div><strong>Salud y Vida</strong><small>GESTIÓN FARMACÉUTICA</small></div></div><div className="nav-label">MENÚ PRINCIPAL</div>{links.map(([icon,label,href])=><a key={href} className="nav-item" href={href} style={{textDecoration:"none"}}><span className="nav-icon">{icon}</span><span>{label}</span></a>)}<div className="sidebar-bottom">Salud y Vida POS<br/>Guatemala · Quetzales (GTQ)</div></aside><main className="main"><header className="topbar"><div className="breadcrumb">Salud y Vida <span style={{margin:"0 8px",color:"#bdc9c2"}}>/</span><b>Panel general</b></div><div className="user"><span style={{fontSize:12}}>{name}</span><button onClick={logout} style={{border:"1px solid #dce7e1",borderRadius:8,padding:"7px 10px",background:"white",fontSize:11}}>Salir</button></div></header><section className="content"><div className="heading"><div><div className="eyebrow">RESUMEN DEL NEGOCIO</div><h1>Panel general</h1><p className="sub">Bienvenido al centro de operaciones de tu farmacia.</p></div><div className="date-pill">◷ &nbsp; Operación en quetzales · GTQ</div></div>{error&&<p style={{padding:12,background:"#fff1ef",color:"#b42318",borderRadius:9,fontSize:12}}>{error}</p>}<div className="stats">{stats.map(([label,value,note])=><div className="card" key={label}><div className="stat-top"><span>{label}</span><span className="stat-icon">▦</span></div><div className="stat-value">{loading?"—":value}</div><div className="stat-note">{note}</div></div>)}</div><div className="panel-grid"><div className="card"><h2 className="panel-title">Control operativo</h2><p className="panel-sub">Indicadores para revisar cada día</p><div className="empty"><div className="empty-mark">✓</div>Las ventas y existencias se actualizan desde los módulos de operación.<br/>Revisa los vencimientos y el stock bajo antes de realizar pedidos.</div></div><div className="card"><h2 className="panel-title">Accesos rápidos</h2><p className="panel-sub">Tareas frecuentes de tu farmacia</p><div className="action-list">{[["＋","Registrar una venta","Cobrar productos","/ventas"],["▦","Agregar productos","Crear catálogo","/productos"],["⇩","Registrar una compra","Ingresar mercadería y lotes","/compras"],["▥","Ver reportes","Consultar ventas y utilidad","/reportes"]].map(([icon,title,desc,href])=><a className="action" key={href} href={href} style={{textDecoration:"none",color:"inherit"}}><div className="action-icon">{icon}</div><div><b>{title}</b><small>{desc}</small></div></a>)}</div></div></div><div style={{marginTop:18,display:"flex",justifyContent:"flex-end"}}><span className="status">● &nbsp; Sistema conectado</span></div></section></main></div>}
