@@ -85,7 +85,7 @@ export default function BackupPage(){
       <div style={{fontSize:36,marginBottom:12}}>⇩</div>
       <h2 style={{fontSize:20,fontWeight:800,margin:"0 0 8px"}}>Exportación de la farmacia</h2>
       <p style={muted}>Descarga un archivo JSON con productos, lotes, clientes, proveedores, compras, ventas, pagos, devoluciones, caja, ajustes y auditoría.</p>
-      <button onClick={exportBackup} disabled={busy||!role} style={{...button,opacity:busy?.65:1}}>
+      <button onClick={exportBackup} disabled={busy||!role} style={{...button,opacity:busy ? 0.65 : 1}}>
         {busy?"Generando respaldo…":"Descargar respaldo"}
       </button>
       {progress&&<p style={{marginTop:14,color:"#0f766e",fontWeight:700}}>{progress}</p>}
