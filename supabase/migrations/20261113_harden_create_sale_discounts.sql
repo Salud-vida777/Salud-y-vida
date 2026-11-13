@@ -160,3 +160,8 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.create_sale(jsonb,jsonb,uuid,numeric,text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.create_sale(jsonb,jsonb,uuid,numeric,text) TO authenticated;
+
+-- Keep all expiry validation aligned with the pharmacy's Guatemala business date.
+ALTER FUNCTION public.create_sale(jsonb,jsonb,uuid,numeric,text) SET timezone TO 'America/Guatemala';
+ALTER FUNCTION public.create_sale_return(uuid,jsonb,jsonb,text) SET timezone TO 'America/Guatemala';
+ALTER FUNCTION public.receive_purchase(uuid,text,jsonb,numeric,text) SET timezone TO 'America/Guatemala';
