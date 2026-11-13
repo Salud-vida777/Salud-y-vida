@@ -1,23 +1,35 @@
 # Salud y Vida POS
 
-Sistema web de punto de venta e inventario para una farmacia en Guatemala.
+Sistema web de punto de venta e inventario para farmacia en Guatemala. Moneda: GTQ (Q).
 
-## Tecnologías
-- Next.js + TypeScript
-- Supabase / PostgreSQL
-- Vercel
+## Módulos
+- Panel de operación con ventas, productos, stock bajo y vencimientos.
+- Punto de venta con búsqueda por nombre/código, carrito, descuentos autorizados, efectivo, tarjeta, transferencia y pago combinado.
+- Descuento automático de lotes FEFO (primero vence, primero sale) y bloqueo de lotes vencidos.
+- Compras y recepción por lote con fecha de vencimiento.
+- Clientes y proveedores.
+- Caja: apertura, ingresos/egresos, ventas en efectivo y arqueo/cierre.
+- Reportes de ventas y utilidad estimada, exportables a CSV.
+- Perfiles: administrador, encargado, cajero e inventario.
 
-## Desarrollo local
-1. Instala Node.js 20 o superior.
-2. Copia `.env.example` a `.env.local`.
-3. Configura las variables públicas de Supabase.
-4. Ejecuta `npm install` y `npm run dev`.
+## Stack
+Next.js 15, React 19, TypeScript, Supabase Auth/Postgres/RLS, Vercel.
 
-## Estado
-- Esquema inicial de base de datos creado.
-- Interfaz inicial adaptable a móvil y escritorio.
-- Autenticación, políticas RLS detalladas, operaciones de venta e integración FEL SAT pendientes.
-- Los datos mostrados en el panel son demostrativos; no ingresar información real hasta completar la seguridad y validación.
+## Variables de entorno
+Configurar en Vercel y localmente:
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
-## Moneda
-Quetzal guatemalteco (GTQ / Q).
+Nunca colocar claves service_role/secret en el navegador ni en GitHub.
+
+## Primer acceso
+1. En Supabase > Authentication > Users, crear el usuario del propietario con correo y contraseña.
+2. Abrir la aplicación e iniciar sesión con esa cuenta.
+3. Entrar a Usuarios y permisos y pulsar “Configurar mi cuenta como primer administrador”. Solo funciona si todavía no existe un administrador activo.
+4. Crear las cuentas del personal desde Supabase Authentication > Users > Add user. El trigger crea sus perfiles automáticamente como cajero. El administrador asigna el rol correcto desde Usuarios y permisos.
+5. Abrir Caja antes de registrar ventas.
+
+## Consideraciones antes de operar
+- El proyecto está en etapa de puesta en marcha. Antes de cargar inventario real, ejecutar pruebas controladas de compras, lotes, vencimientos, venta y caja.
+- FEL/SAT Guatemala no está integrada todavía; debe completarse y validarse con un proveedor autorizado antes de emitir documentos tributarios desde el sistema.
+- Respaldar los datos periódicamente. Los planes gratuitos tienen límites de uso y no garantizan operación ilimitada.
