@@ -468,3 +468,8 @@ CREATE POLICY profiles_read ON public.profiles FOR SELECT TO authenticated
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon;
 REVOKE ALL ON TABLE public.inventory_adjustments FROM authenticated;
 GRANT SELECT ON TABLE public.inventory_adjustments TO authenticated;
+
+-- Cache auth.uid() once per RLS statement.
+DROP POLICY IF EXISTS profiles_read ON public.profiles;
+CREATE POLICY profiles_read ON public.profiles FOR SELECT TO authenticated
+USING (public.current_app_role() IN ('admin','manager') OR id = (SELECT auth.uid()));
