@@ -18,6 +18,10 @@ export default function BackupPage(){
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState("");
   const [progress,setProgress]=useState("");
+  const [restorePayload,setRestorePayload]=useState<Record<string,unknown[]>|null>(null);
+  const [restoreCounts,setRestoreCounts]=useState<Record<string,number>>({});
+  const [restoreFileName,setRestoreFileName]=useState("");
+  const [restoreBusy,setRestoreBusy]=useState(false);
   useEffect(()=>{
     let mounted=true;
     (async()=>{
@@ -74,6 +78,39 @@ export default function BackupPage(){
     }finally{setBusy(false);setProgress("");}
   }
 
+  async function inspectRestoreFile(file:File|null){
+    setRestorePayload(null);setRestoreCounts({});setRestoreFileName("");setMessage("");
+    if(!file)return;
+    try{
+      const parsed=JSON.parse(await file.text());
+      if(parsed?.format!=="salud-y-vida-pos-data-export"||parsed?.version!==1||!parsed?.tables||typeof parsed.tables!=="object"||Array.isArray(parsed.tables))throw new Error("El archivo no tiene el formato de respaldo de Salud y Vida.");
+      const allowed=TABLES.filter(t=>t!=="profiles");
+      const clean:Record<string,unknown[]>={};
+      const counts:Record<string,number>={};
+      for(const table of allowed){
+        if(parsed.tables[table]!==undefined&&!Array.isArray(parsed.tables[table]))throw new Error("La sección "+table+" no tiene un formato válido.");
+        clean[table]=parsed.tables[table]||[];
+        counts[table]=clean[table].length;
+      }
+      if(!allowed.some(t=>counts[t]>0))throw new Error("El archivo no contiene registros de negocio para restaurar.");
+      setRestorePayload(clean);setRestoreCounts(counts);setRestoreFileName(file.name);
+      setMessage("Archivo válido. Revisa el resumen antes de iniciar la restauración.");
+    }catch(e){setMessage(e instanceof Error?e.message:"No se pudo leer el archivo.");}
+  }
+  async function restoreBackup(){
+    if(!restorePayload||restoreBusy)return;
+    const total=Object.values(restoreCounts).reduce((a,b)=>a+b,0);
+    if(!confirm("Se agregarán hasta "+total+" registros del respaldo. Los registros existentes NO se sobrescribirán ni eliminarán. Los perfiles y roles de usuarios no se restauran. Si faltan cuentas de usuario referenciadas, la operación completa se cancelará. ¿Deseas continuar?"))return;
+    setRestoreBusy(true);setMessage("Restaurando datos…");
+    try{
+      const {data,error}=await getSupabase().rpc("restore_business_backup",{p_tables:restorePayload});
+      if(error)throw new Error(error.message);
+      setMessage("Restauración completada. Registros agregados: "+(data?.inserted_records??0)+". Los registros duplicados se omitieron. Perfiles y roles no fueron modificados.");
+      setRestorePayload(null);setRestoreCounts({});setRestoreFileName("");
+    }catch(e){setMessage(e instanceof Error?"No se restauró ningún cambio: "+e.message:"No se pudo restaurar el respaldo.");}
+    finally{setRestoreBusy(false);}
+  }
+
   if(loading)return <main style={shell}><p>Cargando…</p></main>;
   return <main style={shell}>
     <header style={{marginBottom:24}}>
@@ -91,6 +128,20 @@ export default function BackupPage(){
       {progress&&<p style={{marginTop:14,color:"#0f766e",fontWeight:700}}>{progress}</p>}
       {message&&<p role="status" style={{marginTop:14,color:message.startsWith("No se pudo")?"#b91c1c":"#047857",fontWeight:700}}>{message}</p>}
     </section>
+    {role==="admin"&&<section style={{...card,marginTop:16}}>
+      <h2 style={{fontSize:18,fontWeight:800,margin:"0 0 8px"}}>Restaurar desde un archivo</h2>
+      <p style={muted}>Selecciona un respaldo JSON generado por este sistema. Primero se valida y muestra un resumen; la restauración solo se ejecuta cuando confirmes.</p>
+      <input type="file" accept=".json,application/json" onChange={e=>inspectRestoreFile(e.target.files?.[0]||null)} style={{display:"block",margin:"12px 0"}}/>
+      {restoreFileName&&<div style={{fontSize:12,color:"#334155",marginBottom:10}}>Archivo: <b>{restoreFileName}</b></div>}
+      {restorePayload&&<div style={{background:"#f7faf8",border:"1px solid #e3ece7",borderRadius:10,padding:14,marginBottom:14}}>
+        <b style={{fontSize:13}}>Vista previa del respaldo</b>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(125px,1fr))",gap:8,marginTop:10}}>
+          {Object.entries(restoreCounts).filter(([,count])=>count>0).map(([table,count])=><div key={table} style={{fontSize:11,background:"white",padding:9,borderRadius:8}}>{table}<b style={{display:"block",fontSize:16}}>{count}</b></div>)}
+        </div>
+        <p style={{fontSize:11,color:"#92400e",lineHeight:1.6,margin:"12px 0 0"}}>Modo seguro: solo agrega registros que no existan. No actualiza ni borra datos. No restaura perfiles, permisos, usuarios ni contraseñas.</p>
+      </div>}
+      <button onClick={restoreBackup} disabled={!restorePayload||restoreBusy} style={{...button,background:"#1d4ed8",opacity:!restorePayload||restoreBusy?0.55:1}}>{restoreBusy?"Restaurando…":"Confirmar restauración segura"}</button>
+    </section>}
     <section style={{...card,marginTop:16,background:"#fffbeb",borderColor:"#fde68a"}}>
       <h2 style={{fontSize:16,fontWeight:800,margin:"0 0 8px",color:"#92400e"}}>Importante</h2>
       <ul style={{paddingLeft:20,margin:0,color:"#78350f",lineHeight:1.7}}>
