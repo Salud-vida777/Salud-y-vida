@@ -108,6 +108,14 @@ export default function CashPage(){
     {general.length===0?<p style={{fontSize:12,color:"#71817a"}}>Todavía no hay movimientos en la caja general.</p>:general.map(m=><div key={m.movement_id} style={{display:"flex",justifyContent:"space-between",gap:12,padding:"10px 0",borderBottom:"1px solid #edf1ee",fontSize:12}}><span>{m.reason}<small style={{display:"block",color:"#71817a"}}>{m.created_at?new Date(m.created_at).toLocaleString("es-GT"):""} · {m.source==="purchase"?"Compra":m.source==="admin_cash_session"?"Movimiento/venta administrativa":m.source==="manual"?"Manual":m.source}</small></span><b style={{color:m.movement_type==="in"?"#087e61":"#b42318",whiteSpace:"nowrap"}}>{m.movement_type==="in"?"+":"−"} Q {Number(m.amount||0).toFixed(2)}</b></div>)}
    </section>
    <section style={{...box,marginTop:16}}>
+    <h2 style={{fontSize:15}}>Entregas pendientes de trabajadores</h2>
+    <p style={{fontSize:12,color:"#71817a"}}>Cuando recibas físicamente el efectivo del trabajador, confirma aquí la entrega para sumarla al saldo general.</p>
+    {deliveries.length===0?<p style={{fontSize:12,color:"#71817a"}}>No hay entregas pendientes.</p>:deliveries.map(d=><div key={d.session_id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",padding:"12px 0",borderBottom:"1px solid #edf1ee"}}>
+     <span style={{fontSize:12}}><b>{d.worker_name}</b><small style={{display:"block",color:"#71817a",marginTop:4}}>{d.closed_at?new Date(d.closed_at).toLocaleString("es-GT"):"Turno cerrado"} · Contado: Q {Number(d.closing_amount).toFixed(2)} · Ya recibido: Q {Number(d.delivered_amount).toFixed(2)}</small></span>
+     <button disabled={busy||Number(d.remaining_amount)<=0} onClick={()=>receiveDelivery(d)} style={btn}>Recibir Q {Number(d.remaining_amount).toFixed(2)}</button>
+    </div>)}
+   </section>
+   <section style={{...box,marginTop:16}}>
     <h2 style={{fontSize:15}}>Caja para registrar ventas</h2>
     <p style={{fontSize:12,color:"#71817a"}}>Esta sesión técnica permite registrar las ventas del administrador. No controla el saldo general y no tiene cierre de turno.</p>
     {session?<p style={{fontSize:12,color:"#087e61"}}>✓ Caja de ventas habilitada desde {new Date(session.opened_at).toLocaleString("es-GT")}. La caja general permanece abierta.</p>:<><label style={lab}>Fondo operativo inicial (Q)<input type="number" min="0" step=".01" value={opening} onChange={e=>setOpening(e.target.value)} style={inp}/></label><button disabled={busy} onClick={open} style={btn}>Habilitar registro de ventas</button></>}
