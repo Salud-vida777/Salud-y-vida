@@ -20,7 +20,7 @@ export default function LoginPage() {
       const value = username.trim();
       const email = value.includes("@")
         ? value
-        : value.toLowerCase().replace(/\\s+/g, "") + INTERNAL_LOGIN_DOMAIN;
+        : value.toLowerCase().replace(/\s+/g, "") + INTERNAL_LOGIN_DOMAIN;
       const { error } = await getSupabase().auth.signInWithPassword({ email, password });
       if (error) throw error;
       router.replace("/");
