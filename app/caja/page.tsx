@@ -7,7 +7,8 @@ import PosHeader from "@/components/pos-header";
 
 type Session={id:string;opening_amount:number;status:string;opened_at:string;closing_amount:number|null;expected_amount:number|null};
 type Movement={id:string;type:string;amount:number;reason:string;created_at?:string};
-type GeneralMovement={movement_id:string|null;movement_type:string|null;amount:number|null;reason:string|null;source:string|null;created_at:string|null;balance:number};\ntype Delivery={session_id:string;worker_name:string;closed_at:string;closing_amount:number;delivered_amount:number;remaining_amount:number};
+type GeneralMovement={movement_id:string|null;movement_type:string|null;amount:number|null;reason:string|null;source:string|null;created_at:string|null;balance:number};
+type Delivery={session_id:string;worker_name:string;closed_at:string;closing_amount:number;delivered_amount:number;remaining_amount:number};
 
 export default function CashPage(){
  const router=useRouter();
@@ -18,7 +19,8 @@ export default function CashPage(){
  const [closing,setClosing]=useState("");
  const [movements,setMovements]=useState<Movement[]>([]);
  const [general,setGeneral]=useState<GeneralMovement[]>([]);
- const [generalBalance,setGeneralBalance]=useState(0);\n const [deliveries,setDeliveries]=useState<Delivery[]>([]);
+ const [generalBalance,setGeneralBalance]=useState(0);
+ const [deliveries,setDeliveries]=useState<Delivery[]>([]);
  const [kind,setKind]=useState("in");
  const [amount,setAmount]=useState("");
  const [reason,setReason]=useState("");
@@ -45,7 +47,9 @@ export default function CashPage(){
    else {
     const rows=(g||[]) as GeneralMovement[];
     setGeneral(rows.filter(x=>x.movement_id) );
-    setGeneralBalance(Number(rows[0]?.balance||0));\n    const {data:d,error:de}=await sb.rpc("get_pending_worker_deliveries");\n    if(!de)setDeliveries((d||[]) as Delivery[]);
+    setGeneralBalance(Number(rows[0]?.balance||0));
+    const {data:d,error:de}=await sb.rpc("get_pending_worker_deliveries");
+    if(!de)setDeliveries((d||[]) as Delivery[]);
    }
   }
  }
@@ -62,7 +66,12 @@ export default function CashPage(){
   const {error}=await getSupabase().rpc("add_cash_movement",{p_session_id:session.id,p_type:kind,p_amount:Number(amount),p_reason:reason});
   if(error)setMsg(error.message);else{setAmount("");setReason("");setMsg("Movimiento registrado.");await load();}
  }
- async function receiveDelivery(d:Delivery){\n  setBusy(true);setMsg("");\n  const {error}=await getSupabase().rpc("receive_worker_cash_delivery",{p_session_id:d.session_id,p_amount:d.remaining_amount});\n  setBusy(false);if(error)setMsg(error.message);else{setMsg("Entrega recibida y sumada a caja general.");await load();}\n }\n async function generalMovement(e:React.FormEvent){
+ async function receiveDelivery(d:Delivery){
+  setBusy(true);setMsg("");
+  const {error}=await getSupabase().rpc("receive_worker_cash_delivery",{p_session_id:d.session_id,p_amount:d.remaining_amount});
+  setBusy(false);if(error)setMsg(error.message);else{setMsg("Entrega recibida y sumada a caja general.");await load();}
+ }
+ async function generalMovement(e:React.FormEvent){
   e.preventDefault();setBusy(true);
   const {error}=await getSupabase().rpc("record_general_cash_movement",{p_type:kind,p_amount:Number(amount),p_reason:reason});
   setBusy(false);
