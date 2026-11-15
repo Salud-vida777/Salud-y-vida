@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getSupabase } from "@/lib/supabase";
 const CASHIER_PATHS=["/ventas","/caja","/ventas/historial"];
+const INVENTORY_PATHS=["/productos","/inventario","/vencimientos","/stock-bajo","/compras","/proveedores"];
 export default function AuthGuard({children}:{children:React.ReactNode}){
  const pathname=usePathname();const router=useRouter();const [authorized,setAuthorized]=useState(false);const [checked,setChecked]=useState(false);
  useEffect(()=>{let active=true;const sb=getSupabase();
@@ -10,7 +11,9 @@ export default function AuthGuard({children}:{children:React.ReactNode}){
  const {data:profile,error:profileError}=await sb.from("profiles").select("role,active").eq("id",session.user.id).maybeSingle();if(!active)return;
  if(profileError||!profile?.active){setAuthorized(false);setChecked(true);await sb.auth.signOut();router.replace("/login");return;}
  if(profile.role==="cashier"&&!CASHIER_PATHS.includes(pathname)){setAuthorized(false);setChecked(true);router.replace("/ventas");return;}
- if(pathname==="/login"){setAuthorized(false);setChecked(true);router.replace(profile.role==="cashier"?"/ventas":"/");return;}
+ if(profile.role==="inventory"&&!INVENTORY_PATHS.includes(pathname)){setAuthorized(false);setChecked(true);router.replace("/inventario");return;}
+ if(profile.role==="manager"&&pathname==="/usuarios"){setAuthorized(false);setChecked(true);router.replace("/");return;}
+ if(pathname==="/login"){setAuthorized(false);setChecked(true);router.replace(profile.role==="cashier"?"/ventas":profile.role==="inventory"?"/inventario":"/");return;}
  setAuthorized(true);setChecked(true);
  }
  setChecked(false);setAuthorized(false);verify().catch(()=>{if(!active)return;setAuthorized(false);setChecked(true);router.replace("/login");});
