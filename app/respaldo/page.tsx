@@ -8,7 +8,7 @@ const TABLES=[
   "categories","products","product_batches","suppliers","customers",
   "purchases","purchase_items","purchase_payments","sales","sale_items","sale_payments",
   "sale_returns","sale_return_items","sale_return_payments",
-  "cash_sessions","cash_movements","inventory_adjustments","audit_logs","profiles",
+  "cash_sessions","cash_movements","general_cash_movements","inventory_adjustments","audit_logs","profiles",
 ];
 
 export default function BackupPage(){
