@@ -72,7 +72,7 @@ export default function PayablesPage(){
      <label style={label}>Abono (Q)<input type="number" min="0.01" max={p.balance} step="0.01" placeholder={p.balance.toFixed(2)} value={drafts[p.id]?.amount??""} onChange={e=>draft(p.id,"amount",e.target.value)} style={input}/></label>
      <label style={label}>Forma de pago<select value={drafts[p.id]?.method??"cash"} onChange={e=>draft(p.id,"method",e.target.value)} style={input}><option value="cash">Efectivo (descuenta caja)</option><option value="transfer">Transferencia</option></select></label>
      <label style={label}>Referencia<input value={drafts[p.id]?.reference??""} onChange={e=>draft(p.id,"reference",e.target.value)} placeholder="Opcional" style={input}/></label>
-     <button disabled={busy===p.id} onClick={()=>pay(p)} style={{...button,opacity:busy===p.id?.6:1}}>{busy===p.id?"Registrando…":"Registrar abono"}</button>
+     <button disabled={busy===p.id} onClick={()=>pay(p)} style={{...button,opacity:busy===p.id ? 0.6 : 1}}>{busy===p.id?"Registrando…":"Registrar abono"}</button>
     </div>}
    </article>)}
   </section>
