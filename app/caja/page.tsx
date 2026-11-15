@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import {useEffect,useState} from "react";
 import {useRouter} from "next/navigation";
 import {getSupabase} from "@/lib/supabase";
@@ -74,7 +75,7 @@ export default function CashPage(){
  }
 
  return <main style={{maxWidth:1000,margin:"0 auto",padding:"30px 22px"}}>
-  {!roleChecked?<section style={{...box,marginTop:40,textAlign:"center"}}>Verificando permisos de caja…</section>:isAdmin?<header style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",padding:"12px 15px",marginBottom:20,background:"white",border:"1px solid #e3ece7",borderRadius:13}}><div><b style={{color:"#087e61",fontSize:15}}>SALUD Y VIDA</b><div style={{fontSize:10,color:"#71817a",marginTop:3}}>Administración · Caja general</div></div><nav style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><a href="/" style={navLink}>Panel general</a><a href="/compras" style={navLink}>Compras</a><a href="/ventas" style={navLink}>Punto de venta</a></nav></header>:<PosHeader/>}
+  {!roleChecked?<section style={{...box,marginTop:40,textAlign:"center"}}>Verificando permisos de caja…</section>:isAdmin?<header style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",padding:"12px 15px",marginBottom:20,background:"white",border:"1px solid #e3ece7",borderRadius:13}}><div><b style={{color:"#087e61",fontSize:15}}>SALUD Y VIDA</b><div style={{fontSize:10,color:"#71817a",marginTop:3}}>Administración · Caja general</div></div><nav style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><Link href="/" style={navLink}>Panel general</Link><Link href="/compras" style={navLink}>Compras</Link><Link href="/ventas" style={navLink}>Punto de venta</Link></nav></header>:<PosHeader/>}
   {roleChecked&&isAdmin?<>
    <h1 style={{fontSize:26,margin:"12px 0 5px"}}>Caja general</h1>
    <p style={{fontSize:13,color:"#71817a"}}>Saldo permanente de efectivo de la farmacia. No se cierra al terminar el turno de un trabajador.</p>
