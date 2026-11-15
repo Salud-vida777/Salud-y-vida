@@ -11,6 +11,7 @@ type GeneralMovement={movement_id:string|null;movement_type:string|null;amount:n
 export default function CashPage(){
  const router=useRouter();
  const [role,setRole]=useState("");
+ const [roleChecked,setRoleChecked]=useState(false);
  const [session,setSession]=useState<Session|null>(null);
  const [opening,setOpening]=useState("0");
  const [closing,setClosing]=useState("");
@@ -30,7 +31,7 @@ export default function CashPage(){
   if(!auth){router.replace("/login");return;}
   const {data:profile}=await sb.from("profiles").select("role,active").eq("id",auth.user.id).maybeSingle();
   if(!profile?.active){await sb.auth.signOut();router.replace("/login");return;}
-  setRole(profile.role);
+  setRole(profile.role);setRoleChecked(true);
   const {data:s}=await sb.from("cash_sessions").select("id,opening_amount,status,opened_at,closing_amount,expected_amount").eq("opened_by",auth.user.id).eq("status","open").order("opened_at",{ascending:false}).limit(1).maybeSingle();
   setSession(s as Session|null);
   if(s){
@@ -73,8 +74,8 @@ export default function CashPage(){
  }
 
  return <main style={{maxWidth:1000,margin:"0 auto",padding:"30px 22px"}}>
-  <PosHeader/>
-  {isAdmin?<>
+  {!roleChecked?<section style={{...box,marginTop:40,textAlign:"center"}}>Verificando permisos de caja…</section>:isAdmin?<header style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",padding:"12px 15px",marginBottom:20,background:"white",border:"1px solid #e3ece7",borderRadius:13}}><div><b style={{color:"#087e61",fontSize:15}}>SALUD Y VIDA</b><div style={{fontSize:10,color:"#71817a",marginTop:3}}>Administración · Caja general</div></div><nav style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><a href="/" style={navLink}>Panel general</a><a href="/compras" style={navLink}>Compras</a><a href="/ventas" style={navLink}>Punto de venta</a></nav></header>:<PosHeader/>}
+  {roleChecked&&isAdmin?<>
    <h1 style={{fontSize:26,margin:"12px 0 5px"}}>Caja general</h1>
    <p style={{fontSize:13,color:"#71817a"}}>Saldo permanente de efectivo de la farmacia. No se cierra al terminar el turno de un trabajador.</p>
    {msg&&<p style={{fontSize:12,padding:11,background:"#edf8f2",color:"#087e61",borderRadius:8}}>{msg}</p>}
@@ -117,4 +118,4 @@ export default function CashPage(){
 const box:React.CSSProperties={background:"white",border:"1px solid #e3ece7",borderRadius:14,padding:18};
 const lab:React.CSSProperties={display:"block",fontSize:12,fontWeight:600,margin:"12px 0"};
 const inp:React.CSSProperties={display:"block",width:"100%",padding:11,border:"1px solid #dce7e1",borderRadius:8,marginTop:6,fontSize:12,background:"white"};
-const btn:React.CSSProperties={padding:11,background:"#087e61",color:"white",border:0,borderRadius:8,fontWeight:700,cursor:"pointer"};
+const navLink:React.CSSProperties={padding:"9px 13px",borderRadius:9,textDecoration:"none",fontSize:12,fontWeight:700,background:"#edf6f1",color:"#087e61"};\nconst btn:React.CSSProperties={padding:11,background:"#087e61",color:"white",border:0,borderRadius:8,fontWeight:700,cursor:"pointer"};
