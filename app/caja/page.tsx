@@ -118,4 +118,5 @@ export default function CashPage(){
 const box:React.CSSProperties={background:"white",border:"1px solid #e3ece7",borderRadius:14,padding:18};
 const lab:React.CSSProperties={display:"block",fontSize:12,fontWeight:600,margin:"12px 0"};
 const inp:React.CSSProperties={display:"block",width:"100%",padding:11,border:"1px solid #dce7e1",borderRadius:8,marginTop:6,fontSize:12,background:"white"};
-const navLink:React.CSSProperties={padding:"9px 13px",borderRadius:9,textDecoration:"none",fontSize:12,fontWeight:700,background:"#edf6f1",color:"#087e61"};\nconst btn:React.CSSProperties={padding:11,background:"#087e61",color:"white",border:0,borderRadius:8,fontWeight:700,cursor:"pointer"};
+const navLink:React.CSSProperties={padding:"9px 13px",borderRadius:9,textDecoration:"none",fontSize:12,fontWeight:700,background:"#edf6f1",color:"#087e61"};
+const btn:React.CSSProperties={padding:11,background:"#087e61",color:"white",border:0,borderRadius:8,fontWeight:700,cursor:"pointer"};
