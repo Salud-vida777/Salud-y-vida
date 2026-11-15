@@ -21,9 +21,12 @@ export default function LoginPage() {
       const email = value.includes("@")
         ? value
         : value.toLowerCase().replace(/\s+/g, "") + INTERNAL_LOGIN_DOMAIN;
-      const { error } = await getSupabase().auth.signInWithPassword({ email, password });
+      const sb = getSupabase();
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      router.replace("/");
+      const { data: profile, error: profileError } = await sb.from("profiles").select("role,active").eq("id", data.user.id).maybeSingle();
+      if (profileError || !profile?.active) throw new Error("Cuenta inactiva");
+      router.replace(profile.role === "cashier" ? "/ventas" : "/");
     } catch {
       setError("Usuario o contraseña incorrectos. Verifica tus datos e inténtalo de nuevo.");
     } finally {
