@@ -1,6 +1,5 @@
 "use client";
 import {useEffect,useMemo,useState} from "react";import Link from "next/link";import {useRouter} from "next/navigation";import {getSupabase} from "@/lib/supabase";
-import {getGuatemalaDate} from "@/lib/date";
 type Product={id:string,name:string,sku:string|null,barcode:string|null,sale_price:number;image_urls:string[];available_stock:number};
 type Cart={product:Product,qty:number};
 type Customer={id:string,full_name:string};
