@@ -11,38 +11,61 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    if (pathname === "/login") return;
-
     let active = true;
     const supabase = getSupabase();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!active) return;
-      if (session) {
-        setAuthorized(true);
-        setChecked(true);
-      } else if (event === "SIGNED_OUT" || event === "INITIAL_SESSION") {
-        setAuthorized(false);
-        setChecked(true);
-        router.replace("/login");
-      }
-    });
-
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
+    async function verify() {
+      const { data: { session }, error } = await supabase.auth.getSession();
       if (!active) return;
       if (error || !session) {
         setAuthorized(false);
         setChecked(true);
+        if (pathname !== "/login") router.replace("/login");
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role,active")
+        .eq("id", session.user.id)
+        .maybeSingle();
+
+      if (!active) return;
+      if (profileError || !profile?.active) {
+        setAuthorized(false);
+        setChecked(true);
+        await supabase.auth.signOut();
         router.replace("/login");
         return;
       }
+
       setAuthorized(true);
       setChecked(true);
-    }).catch(() => {
+
+      if (pathname === "/login") {
+        router.replace(profile.role === "cashier" ? "/ventas" : "/");
+        return;
+      }
+
+      if (profile.role === "cashier" && pathname !== "/ventas" && pathname !== "/caja") {
+        router.replace("/ventas");
+      }
+    }
+
+    setChecked(false);
+    setAuthorized(false);
+    verify().catch(() => {
       if (!active) return;
       setAuthorized(false);
       setChecked(true);
       router.replace("/login");
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        setAuthorized(false);
+        router.replace("/login");
+      }
     });
 
     return () => {
@@ -51,9 +74,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     };
   }, [pathname, router]);
 
-  if (pathname === "/login") return <>{children}</>;
-
   if (!checked || !authorized) {
+    if (pathname === "/login" && !checked) return <>{children}</>;
     return (
       <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "#f2f7f4", color: "#087e61", fontFamily: "Arial, sans-serif" }}>
         <div style={{ textAlign: "center" }}>
