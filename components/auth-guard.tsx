@@ -74,6 +74,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     };
   }, [pathname, router]);
 
+  if (pathname === "/login" && checked && !authorized) return <>{children}</>;
+
   if (!checked || !authorized) {
     if (pathname === "/login" && !checked) return <>{children}</>;
     return (
