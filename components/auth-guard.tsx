@@ -77,6 +77,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   useEffect(() => {
+    // If the session is missing or expired, never leave protected pages stuck on the verification spinner.
+    if (status === "anonymous" && pathname !== "/login") {
+      router.replace("/login");
+      return;
+    }
     if (status !== "authenticated" || !role) return;
 
     if (pathname === "/login") {
