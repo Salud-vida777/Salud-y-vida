@@ -36,7 +36,7 @@ export default function LoginPage() {
 
   return <main style={{minHeight:"100vh",display:"grid",placeItems:"center",padding:20,background:"#f2f7f4"}}>
     <section style={{width:"100%",maxWidth:420,background:"white",border:"1px solid #e3ece7",borderRadius:20,padding:32,boxShadow:"0 18px 55px #173d2b12"}}>
-      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:28}}><div style={{width:46,height:46,borderRadius:15,background:"#087e61",color:"white",display:"grid",placeItems:"center",fontSize:27}}>+</div><div><b style={{fontSize:19}}>Salud y Vida</b><div style={{fontSize:11,color:"#71817a"}}>SISTEMA DE FARMACIA</div></div></div>
+      <div style={{textAlign:"center",marginBottom:24}}><img src="/logo-farmacia.svg" alt="Logo de Farmacia Salud y Vida" style={{width:"100%",maxWidth:290,height:175,objectFit:"contain",borderRadius:12}}/><div style={{fontSize:11,color:"#71817a",letterSpacing:1}}>SISTEMA DE FARMACIA</div></div>
       <div style={{fontSize:11,fontWeight:700,letterSpacing:1.2,color:"#087e61"}}>BIENVENIDO</div><h1 style={{fontSize:25,margin:"8px 0"}}>Iniciar sesión</h1><p style={{fontSize:13,color:"#71817a",marginBottom:24}}>Ingresa con tu usuario o correo y tu contraseña.</p>
       <form onSubmit={submit} style={{display:"grid",gap:14}}>
         <label style={{fontSize:12,fontWeight:600}}>Usuario o correo electrónico<input required type="text" autoComplete="username" value={username} onChange={e=>setUsername(e.target.value)} placeholder="Ej. Farmacia2026" style={input}/></label>
