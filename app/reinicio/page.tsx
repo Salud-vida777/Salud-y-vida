@@ -45,7 +45,6 @@ export default function ResetPage() {
   const [loading,setLoading] = useState(true);
   const [busy,setBusy] = useState(false);
   const [backup,setBackup] = useState<Backup|null>(null);
-  const [pdfOpened,setPdfOpened] = useState(false);
   const [saved,setSaved] = useState(false);
   const [password,setPassword] = useState("");
   const [phrase,setPhrase] = useState("");
@@ -98,7 +97,6 @@ export default function ResetPage() {
       @page{size:A4 landscape;margin:12mm}body{font-family:Arial,sans-serif;color:#183b30;font-size:9px}h1{font-size:22px;margin-bottom:4px}h2{font-size:14px;margin:18px 0 7px;border-bottom:1px solid #9bb7a8;padding-bottom:5px}p,.meta{color:#52665c}table{border-collapse:collapse;width:100%;table-layout:auto;margin-bottom:14px}th,td{border:1px solid #dce5df;padding:4px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:#edf4ef}tr{break-inside:avoid}section{break-inside:auto}header{border-bottom:2px solid #087e61;padding-bottom:10px;margin-bottom:12px}.warning{background:#fff6e5;padding:9px;border:1px solid #efd49a}
       </style></head><body><header><h1>Salud y Vida — Respaldo general</h1><div class="meta">Generado: ${esc(new Date().toLocaleString("es-GT"))} · Guatemala · Registros incluidos: ${total+Object.values(result).reduce((a,r)=>a+r.length,0)-total}</div><p class="warning">Copia de respaldo previa al reinicio de datos. Contiene información operativa y personal; guárdala en un lugar privado y seguro.</p><p>Este documento conserva una copia de las tablas y registros consultados. Las cuentas de acceso se mantienen activas en el sistema; no se exportan contraseñas.</p></header>${sections}<script>window.onload=()=>setTimeout(()=>window.print(),500)</script></body></html>`;
       win.document.open();win.document.write(html);win.document.close();
-      setPdfOpened(true);
       setMessage("Respaldo preparado. En la ventana que se abrió, selecciona «Guardar como PDF» y guarda el archivo en tu dispositivo. Luego marca la casilla de confirmación.");
     }catch(e){
       win.close();
@@ -125,7 +123,7 @@ export default function ResetPage() {
       if(error) throw new Error(error.message);
       setPassword("");
       setMessage("Reinicio completado. Se eliminaron los datos operativos y se conservaron las cuentas de acceso. Ya puedes comenzar a registrar la información real.");
-      setBackup(null);setSaved(false);setPdfOpened(false);setPhrase("");
+      setBackup(null);setSaved(false);setPhrase("");
       void data;
     }catch(e){setError(e instanceof Error?e.message:"No se pudo completar el reinicio.");}
     finally{setBusy(false);}
