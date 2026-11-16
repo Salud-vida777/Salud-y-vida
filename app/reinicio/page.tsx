@@ -165,7 +165,7 @@ export default function ResetPage() {
       <p style={{fontSize:12,color:"#71817a",lineHeight:1.6}}>Para evitar errores, escribe la frase indicada y confirma con la contraseña de tu cuenta administradora.</p>
       <label style={{display:"block",fontSize:12,fontWeight:700,marginTop:12}}>Escribe: REINICIAR FARMACIA<input value={phrase} onChange={e=>setPhrase(e.target.value)} placeholder="REINICIAR FARMACIA" style={styles.input} autoComplete="off"/></label>
       <label style={{display:"block",fontSize:12,fontWeight:700,marginTop:12}}>Contraseña de administrador<input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Tu contraseña actual" style={styles.input} autoComplete="current-password"/></label>
-      <button type="button" onClick={resetAll} disabled={busy||!backup||!saved||phrase!=="REINICIAR FARMACIA"||!password} style={{...styles.button,background:"#b42318",marginTop:16,opacity:busy||!backup||!saved||phrase!=="REINICIAR FARMACIA"||!password?.length?.valueOf()?0.55:1}}>{busy?"Procesando reinicio…":"Eliminar los datos y comenzar de cero"}</button>
+      <button type="button" onClick={resetAll} disabled={busy||!backup||!saved||phrase!=="REINICIAR FARMACIA"||!password} style={{...styles.button,background:"#b42318",marginTop:16,opacity:busy||!backup||!saved||phrase!=="REINICIAR FARMACIA"||!password.length?0.55:1}}>{busy?"Procesando reinicio…":"Eliminar los datos y comenzar de cero"}</button>
     </section>
     {error&&<p role="alert" style={{padding:12,background:"#fff1ef",color:"#b42318",borderRadius:9,fontSize:12,marginTop:14}}>{error}</p>}
     {message&&<p role="status" style={{padding:12,background:"#edf8f2",color:"#087e61",borderRadius:9,fontSize:12,marginTop:14}}>{message}</p>}
