@@ -121,7 +121,7 @@ export default function ResetPage() {
       if(authError) throw new Error("La contraseña de administrador no es correcta. No se eliminó nada.");
       const {data:profile}=await sb.from("profiles").select("role,active").eq("id",session.user.id).maybeSingle();
       if(!profile?.active||profile.role!=="admin") throw new Error("La cuenta no tiene permisos de administrador.");
-      const {data,error}=await sb.rpc("reset_operational_data");
+      const {data,error}=await sb.rpc("reset_operational_data",{p_admin_password:password});
       if(error) throw new Error(error.message);
       setPassword("");
       setMessage("Reinicio completado. Se eliminaron los datos operativos y se conservaron las cuentas de acceso. Ya puedes comenzar a registrar la información real.");
