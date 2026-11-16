@@ -5,7 +5,7 @@ import {getSupabase} from "@/lib/supabase";
 import {getGuatemalaDate} from "@/lib/date";
 
 const TABLES=[
-  "categories","products","product_batches","suppliers","customers",
+  "categories","products","product_batches","suppliers","customers","expense_records",
   "purchases","purchase_items","purchase_payments","sales","sale_items","sale_payments",
   "sale_returns","sale_return_items","sale_return_payments",
   "cash_sessions","cash_movements","general_cash_movements","inventory_adjustments","audit_logs","profiles",
@@ -121,7 +121,7 @@ export default function BackupPage(){
     <section style={card}>
       <div style={{fontSize:36,marginBottom:12}}>⇩</div>
       <h2 style={{fontSize:20,fontWeight:800,margin:"0 0 8px"}}>Exportación de la farmacia</h2>
-      <p style={muted}>Descarga un archivo JSON con productos, lotes, clientes, proveedores, compras, ventas, pagos, devoluciones, caja, ajustes y auditoría.</p>
+      <p style={muted}>Descarga un archivo JSON con productos, lotes, clientes, proveedores, compras, gastos, ventas, pagos, devoluciones, caja, ajustes y auditoría.</p>
       <button onClick={exportBackup} disabled={busy||!role} style={{...button,opacity:busy ? 0.65 : 1}}>
         {busy?"Generando respaldo…":"Descargar respaldo"}
       </button>
