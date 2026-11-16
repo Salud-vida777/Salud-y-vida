@@ -5,7 +5,7 @@ import {useRouter} from "next/navigation";
 import {getSupabase} from "@/lib/supabase";
 import {getGuatemalaDate,guatemalaDateToIso} from "@/lib/date";
 
-type Sale={id:string;sale_number:number;status:string;total:number;sold_at:string;sale_items:{quantity:number;unit_cost:number}[];sale_payments:{amount:number;method:string}[];sale_returns:{total:number;sale_return_items:{quantity:number;restocked:boolean;sale_item:{unit_cost:number}|null}[]}[]};
+type Sale={id:string;sale_number:number;status:string;total:number;change_due:number;sold_at:string;sale_items:{quantity:number;unit_cost:number}[];sale_payments:{amount:number;method:string}[];sale_returns:{total:number;sale_return_items:{quantity:number;restocked:boolean;sale_item:{unit_cost:number}|null}[]}[]};
 type Expense={id:string;amount:number;payment_method:string;expense_date:string};
 const money=(v:number)=>"Q "+v.toLocaleString("es-GT",{minimumFractionDigits:2,maximumFractionDigits:2});
 const styles={card:{background:"#fff",border:"1px solid #e3ece7",borderRadius:14,padding:17} as React.CSSProperties,grid:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(185px,1fr))",gap:12,marginTop:16} as React.CSSProperties,label:{display:"block",fontSize:11,fontWeight:700} as React.CSSProperties,input:{display:"block",padding:10,border:"1px solid #dce7e1",borderRadius:8,marginTop:5} as React.CSSProperties,button:{padding:"10px 14px",background:"#087e61",color:"white",border:0,borderRadius:8,fontWeight:700,fontSize:12} as React.CSSProperties,table:{width:"100%",minWidth:760,borderCollapse:"collapse",fontSize:12} as React.CSSProperties,th:{padding:11,textAlign:"left",background:"#f7faf8",color:"#71817a"} as React.CSSProperties,td:{padding:11,borderTop:"1px solid #edf1ee"} as React.CSSProperties};
@@ -19,7 +19,7 @@ export default function FinancesPage(){
   setBusy(true);setError("");const sb=getSupabase();const {data:{session}}=await sb.auth.getSession();
   if(!session){router.replace("/login");return;}
   const [s,e]=await Promise.all([
-   sb.from("sales").select("id,sale_number,status,total,sold_at,sale_items(quantity,unit_cost),sale_payments(amount,method),sale_returns(total,sale_return_items(quantity,restocked,sale_item:sale_items(unit_cost)))").gte("sold_at",guatemalaDateToIso(from)).lte("sold_at",guatemalaDateToIso(to,true)).order("sold_at",{ascending:false}).limit(3000),
+   sb.from("sales").select("id,sale_number,status,total,change_due,sold_at,sale_items(quantity,unit_cost),sale_payments(amount,method),sale_returns(total,sale_return_items(quantity,restocked,sale_item:sale_items(unit_cost)))").gte("sold_at",guatemalaDateToIso(from)).lte("sold_at",guatemalaDateToIso(to,true)).order("sold_at",{ascending:false}).limit(3000),
    sb.from("expense_records").select("id,amount,payment_method,expense_date").gte("expense_date",from).lte("expense_date",to).limit(3000)
   ]);
   if(s.error||e.error){setError(s.error?.message||e.error?.message||"No se pudo consultar la información.");}
