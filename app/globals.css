@@ -86,3 +86,40 @@ body :is(p){line-height:1.6}
   body :is(table){min-width:620px}body :is(div,section){min-width:0}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
+
+
+/* Rediseño visible v2: navegación clara, jerarquía tipográfica y superficies */
+.shell{background:#f2f7f4!important}
+.sidebar{width:272px!important;background:#fff!important;color:#24483a!important;border-right:1px solid #dce9e1!important;box-shadow:5px 0 24px rgba(22,65,45,.045)!important;padding:24px 16px!important}
+.brand{border-bottom:1px solid #edf2ee!important;margin-bottom:14px!important;padding-bottom:20px!important}
+.brand img{max-height:104px!important}
+.nav-label{color:#8b9e93!important;font-size:9px!important;letter-spacing:1.7px!important}
+.nav-item{color:#526b5e!important;font-weight:650!important;padding:12px 13px!important;border:1px solid transparent!important}
+.nav-item:hover{background:#f0f8f3!important;color:#087e61!important;transform:translateX(3px)!important}
+.nav-item.active{background:#e5f5ec!important;color:#087e61!important;border-color:#cce9d8!important;box-shadow:none!important}
+.nav-icon{color:#078465!important}
+.sidebar-bottom{color:#82968a!important;border-color:#e8f0eb!important}
+.topbar{height:78px!important;background:#fff!important;border-bottom:1px solid #e3ece6!important;padding:0 42px!important}
+.content{max-width:1500px!important;padding:38px 42px!important}
+.heading{margin-bottom:30px!important}
+.eyebrow{display:inline-flex!important;align-items:center!important;background:#e5f5ec!important;border-radius:30px!important;padding:6px 11px!important;letter-spacing:1.25px!important}
+h1{font-size:31px!important;letter-spacing:-1.1px!important;color:#153d2e!important}
+.stats{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:14px!important}
+.card{border:1px solid #e0ebe4!important;border-radius:18px!important;box-shadow:0 5px 20px rgba(22,65,45,.045)!important}
+.stats .card{min-height:142px!important;padding:20px!important;position:relative!important;overflow:hidden!important}
+.stats .card:after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#18a477}
+.stat-value{font-size:30px!important;color:#087e61!important}
+.stat-icon{background:#e5f5ec!important;border-radius:12px!important}
+.panel-grid{gap:20px!important}
+.panel-grid>.card{padding:24px!important}
+.panel-title{font-size:16px!important}
+.action{padding:13px!important;border-radius:13px!important}
+.action-icon{background:#e5f5ec!important;color:#087e61!important}
+.status{background:#e4f6eb!important;color:#087e61!important}
+body:has(.shell){background:#f2f7f4!important}
+body:has(.shell) button{font-weight:650}
+body:has(.shell) button:not(:disabled){border-radius:11px}
+body:has(main form) main{background:radial-gradient(ellipse at 15% 15%,#dff3e8 0,transparent 42%),linear-gradient(135deg,#f4faf6,#eaf4ee)!important}
+body:has(main form) main>section{border:1px solid #dcebe2!important;border-radius:24px!important;box-shadow:0 24px 70px rgba(16,67,44,.12)!important;padding:38px!important}
+@media(max-width:1200px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media(max-width:680px){.sidebar{width:68px!important;padding:16px 7px!important}.topbar{padding:0 14px!important}.content{padding:22px 14px!important}.stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.stats .card{min-height:126px!important;padding:14px!important}h1{font-size:25px!important}}
