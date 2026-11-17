@@ -1,8 +1,8 @@
 "use client";
-import {useEffect,useMemo,useState} from "react";
+import {useEffect,useMemo,useRef,useState} from "react";
 import Link from "next/link";
 import {useRouter} from "next/navigation";
-import {createClient} from "@supabase/supabase-js";
+import {createClient, type SupabaseClient} from "@supabase/supabase-js";
 import {getSupabase} from "@/lib/supabase";
 
 type Profile={id:string;full_name:string|null;role:string;active:boolean};
@@ -29,6 +29,7 @@ export default function UsersPage(){
  const [otp,setOtp]=useState("");
  const [step,setStep]=useState<"password"|"code">("password");
  const [busy,setBusy]=useState(false);
+ const reauthClientRef=useRef<SupabaseClient|null>(null);
 
  async function load(){
   const sb=getSupabase();
@@ -59,7 +60,7 @@ export default function UsersPage(){
   const {error}=await getSupabase().rpc("set_staff_role",{p_user_id:id,p_role:selectedRole,p_active:selectedActive});
   if(error)setErr(error.message);else{setMsg("Permisos actualizados.");void load();}
  }
- function resetPasswordFlow(){setStep("password");setCurrentPassword("");setNewPassword("");setConfirmPassword("");setOtp("");setErr("");setMsg("");}
+ function resetPasswordFlow(){reauthClientRef.current=null;setStep("password");setCurrentPassword("");setNewPassword("");setConfirmPassword("");setOtp("");setErr("");setMsg("");}
 
  async function sendCode(){
   setErr("");setMsg("");
@@ -78,12 +79,19 @@ export default function UsersPage(){
    }
    const url=process.env.NEXT_PUBLIC_SUPABASE_URL!;
    const key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-   const verifier=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
-   const {error:checkError}=await verifier.auth.signInWithPassword({email:verifyEmail,password:currentPassword});
-   await verifier.auth.signOut();
+   const passwordChecker=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+   const {error:checkError}=await passwordChecker.auth.signInWithPassword({email:verifyEmail,password:currentPassword});
+   await passwordChecker.auth.signOut();
    if(checkError)throw new Error("La contraseña actual no es correcta. No se ha cambiado ninguna contraseña.");
-   const {error:mailError}=await sb.auth.reauthenticate();
+   // Reauthenticate using an isolated client explicitly initialized with the administrator's active session.
+   const {data:{session:adminSession},error:sessionError}=await sb.auth.getSession();
+   if(sessionError||!adminSession?.access_token||!adminSession.refresh_token)throw new Error("La sesión del administrador venció. Cierra sesión, vuelve a entrar y solicita el código otra vez.");
+   const reauthClient=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:true,detectSessionInUrl:false}});
+   const {error:setSessionError}=await reauthClient.auth.setSession({access_token:adminSession.access_token,refresh_token:adminSession.refresh_token});
+   if(setSessionError)throw new Error("No se pudo recuperar la sesión del administrador: "+setSessionError.message);
+   const {error:mailError}=await reauthClient.auth.reauthenticate();
    if(mailError)throw new Error("No se pudo enviar el código al correo del administrador: "+mailError.message);
+   reauthClientRef.current=reauthClient;
    setStep("code");
    setMsg("Código solicitado. Revisa la bandeja de entrada y la carpeta de spam del correo Gmail del administrador.");
   }catch(e){setErr(e instanceof Error?e.message:"No se pudo solicitar el código.");}
@@ -97,14 +105,19 @@ export default function UsersPage(){
   try{
    const sb=getSupabase();
    if(targetId===myId){
-    const {error}=await sb.auth.updateUser({password:newPassword,current_password:currentPassword,nonce:otp.trim()});
+    const reauthClient=reauthClientRef.current;
+    if(!reauthClient)throw new Error("La verificación expiró. Solicita un código nuevo.");
+    const {error}=await reauthClient.auth.updateUser({password:newPassword,current_password:currentPassword,nonce:otp.trim()});
     if(error)throw new Error("El código no es correcto o ya venció, o la contraseña actual no coincide: "+error.message);
    }else{
-    const {error:verifyError}=await sb.auth.verifyOtp({email:myEmail,token:otp.trim(),type:"reauthentication"});
+    const reauthClient=reauthClientRef.current;
+    if(!reauthClient)throw new Error("La verificación expiró. Solicita un código nuevo.");
+    const {error:verifyError}=await reauthClient.auth.verifyOtp({email:myEmail,token:otp.trim(),type:"reauthentication"});
     if(verifyError)throw new Error("El código no es correcto o ya venció. Solicita uno nuevo.");
     const {data,error}=await sb.functions.invoke("admin-password-management",{body:{action:"change",targetId,newPassword}});
     if(error||data?.error)throw new Error(data?.error||error?.message||"No se pudo cambiar la contraseña del vendedor.");
    }
+   reauthClientRef.current=null;
    setStep("password");setCurrentPassword("");setNewPassword("");setConfirmPassword("");setOtp("");
    setMsg("Contraseña cambiada correctamente. La contraseña anterior ya no permitirá iniciar sesión.");
   }catch(e){setErr(e instanceof Error?e.message:"No se pudo cambiar la contraseña.");}
