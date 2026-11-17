@@ -96,17 +96,17 @@ export default function UsersPage(){
   setBusy(true);
   try{
    const sb=getSupabase();
-   const {error:verifyError}=await sb.auth.verifyOtp({email:myEmail,token:otp.trim(),type:"reauthentication"});
-   if(verifyError)throw new Error("El código no es correcto o ya venció. Solicita uno nuevo.");
    if(targetId===myId){
     const {error}=await sb.auth.updateUser({password:newPassword,current_password:currentPassword,nonce:otp.trim()});
-    if(error)throw error;
+    if(error)throw new Error("El código no es correcto o ya venció, o la contraseña actual no coincide: "+error.message);
    }else{
+    const {error:verifyError}=await sb.auth.verifyOtp({email:myEmail,token:otp.trim(),type:"reauthentication"});
+    if(verifyError)throw new Error("El código no es correcto o ya venció. Solicita uno nuevo.");
     const {data,error}=await sb.functions.invoke("admin-password-management",{body:{action:"change",targetId,newPassword}});
     if(error||data?.error)throw new Error(data?.error||error?.message||"No se pudo cambiar la contraseña del vendedor.");
    }
+   setStep("password");setCurrentPassword("");setNewPassword("");setConfirmPassword("");setOtp("");
    setMsg("Contraseña cambiada correctamente. La contraseña anterior ya no permitirá iniciar sesión.");
-   resetPasswordFlow();
   }catch(e){setErr(e instanceof Error?e.message:"No se pudo cambiar la contraseña.");}
   finally{setBusy(false);}
  }
