@@ -107,8 +107,12 @@ export default function UsersPage(){
    if(targetId===myId){
     const reauthClient=reauthClientRef.current;
     if(!reauthClient)throw new Error("La verificación expiró. Solicita un código nuevo.");
-    const {error}=await reauthClient.auth.updateUser({password:newPassword,current_password:currentPassword,nonce:otp.trim()});
-    if(error)throw new Error("El código no es correcto o ya venció, o la contraseña actual no coincide: "+error.message);
+    // Supabase reauthentication codes must be verified with verifyOtp first.
+    // Passing the raw email code as updateUser.nonce is incorrect and causes password updates to fail.
+    const {error:verifyError}=await reauthClient.auth.verifyOtp({email:myEmail,token:otp.trim(),type:"reauthentication"});
+    if(verifyError)throw new Error("El código no es correcto o ya venció. Solicita uno nuevo.");
+    const {error}=await reauthClient.auth.updateUser({password:newPassword});
+    if(error)throw new Error("No se pudo guardar la nueva contraseña: "+error.message);
    }else{
     const reauthClient=reauthClientRef.current;
     if(!reauthClient)throw new Error("La verificación expiró. Solicita un código nuevo.");
