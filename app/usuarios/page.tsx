@@ -87,8 +87,18 @@ export default function UsersPage(){
    // Copying tokens to a separate client can fail with "Auth session missing".
    const {data:{session:adminSession},error:sessionError}=await sb.auth.getSession();
    if(sessionError||!adminSession?.access_token)throw new Error("La sesión del administrador venció. Cierra sesión, vuelve a entrar y solicita el código otra vez.");
-   const {error:mailError}=await sb.auth.reauthenticate();
-   if(mailError)throw new Error("No se pudo enviar el código al correo del administrador: "+mailError.message);
+   // Call the reauthentication endpoint with the access token explicitly.
+   // This avoids the SDK's internal session lookup failing despite a valid session
+   // being returned above (reported as "Auth session missing!").
+   const reauthResponse=await fetch(`${url}/auth/v1/reauthenticate`,{
+    method:"POST",
+    headers:{"apikey":key,"Authorization":`Bearer ${adminSession.access_token}`,"Content-Type":"application/json"},
+   });
+   if(!reauthResponse.ok){
+    let detail="No se pudo enviar el código.";
+    try{const payload=await reauthResponse.json();detail=payload.msg||payload.message||payload.error_description||payload.error||detail;}catch{}
+    throw new Error("No se pudo enviar el código al correo del administrador: "+detail);
+   }
    reauthClientRef.current=sb;
    setStep("code");
    setMsg("Código solicitado. Revisa la bandeja de entrada y la carpeta de spam del correo Gmail del administrador.");
