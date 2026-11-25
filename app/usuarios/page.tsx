@@ -26,10 +26,10 @@ export default function UsersPage(){
  const [currentPassword,setCurrentPassword]=useState("");
  const [newPassword,setNewPassword]=useState("");
  const [confirmPassword,setConfirmPassword]=useState("");
- const [otp,setOtp]=useState("");
- const [step,setStep]=useState<"password"|"code">("password");
+ 
+ 
  const [busy,setBusy]=useState(false);
- const reauthClientRef=useRef<SupabaseClient|null>(null);
+
 
  async function load(){
   const sb=getSupabase();
@@ -60,7 +60,7 @@ export default function UsersPage(){
   const {error}=await getSupabase().rpc("set_staff_role",{p_user_id:id,p_role:selectedRole,p_active:selectedActive});
   if(error)setErr(error.message);else{setMsg("Permisos actualizados.");void load();}
  }
- function resetPasswordFlow(){reauthClientRef.current=null;setStep("password");setCurrentPassword("");setNewPassword("");setConfirmPassword("");setOtp("");setErr("");setMsg("");}
+ function resetPasswordFlow(){setCurrentPassword("");setNewPassword("");setConfirmPassword("");setErr("");setMsg("");}
 
  async function sendCode(){
   setErr("");setMsg("");
@@ -92,39 +92,8 @@ export default function UsersPage(){
     if(error||data?.error)throw new Error(data?.error||error?.message||"No se pudo cambiar la contraseña del vendedor.");
    }
    await passwordChecker.auth.signOut();
-   reauthClientRef.current=null;
-   setStep("password");setCurrentPassword("");setNewPassword("");setConfirmPassword("");setOtp("");
+   setCurrentPassword("");setNewPassword("");setConfirmPassword("");
    setMsg("Contraseña cambiada correctamente.");
-  }catch(e){setErr(e instanceof Error?e.message:"No se pudo cambiar la contraseña.");}
-  finally{setBusy(false);}
- }
-
- async function confirmChange(){
-  setErr("");setMsg("");
-  if(!/^\d{6}$/.test(otp.trim())){setErr("Escribe el código de 6 dígitos recibido por correo.");return;}
-  setBusy(true);
-  try{
-   const sb=getSupabase();
-   if(targetId===myId){
-    const reauthClient=reauthClientRef.current;
-    if(!reauthClient)throw new Error("La verificación expiró. Solicita un código nuevo.");
-    // Supabase reauthentication codes must be verified with verifyOtp first.
-    // Passing the raw email code as updateUser.nonce is incorrect and causes password updates to fail.
-    const {error:verifyError}=await reauthClient.auth.verifyOtp({email:myEmail,token:otp.trim(),type:"reauthentication"});
-    if(verifyError)throw new Error("El código no es correcto o ya venció. Solicita uno nuevo.");
-    const {error}=await reauthClient.auth.updateUser({password:newPassword});
-    if(error)throw new Error("No se pudo guardar la nueva contraseña: "+error.message);
-   }else{
-    const reauthClient=reauthClientRef.current;
-    if(!reauthClient)throw new Error("La verificación expiró. Solicita un código nuevo.");
-    const {error:verifyError}=await reauthClient.auth.verifyOtp({email:myEmail,token:otp.trim(),type:"reauthentication"});
-    if(verifyError)throw new Error("El código no es correcto o ya venció. Solicita uno nuevo.");
-    const {data,error}=await sb.functions.invoke("admin-password-management",{body:{action:"change",targetId,newPassword}});
-    if(error||data?.error)throw new Error(data?.error||error?.message||"No se pudo cambiar la contraseña del vendedor.");
-   }
-   reauthClientRef.current=null;
-   setStep("password");setCurrentPassword("");setNewPassword("");setConfirmPassword("");setOtp("");
-   setMsg("Contraseña cambiada correctamente. La contraseña anterior ya no permitirá iniciar sesión.");
   }catch(e){setErr(e instanceof Error?e.message:"No se pudo cambiar la contraseña.");}
   finally{setBusy(false);}
  }
@@ -156,7 +125,7 @@ export default function UsersPage(){
      </label>
     </div>
     <button disabled={busy} onClick={sendCode} style={{...btn,marginTop:14,opacity:busy?.6:1}}>{busy?"Guardando…":"Verificar contraseña actual y cambiar contraseña"}</button>
-    <p style={{fontSize:10,color:"#82918a",lineHeight:1.6,marginTop:12}}>El código se envía al correo asociado a la cuenta del administrador, no al vendedor. No compartas el código con nadie. Las contraseñas nunca se muestran en el listado de usuarios.</p>
+    <p style={{fontSize:10,color:"#82918a",lineHeight:1.6,marginTop:12}}>La contraseña actual se verifica de forma segura antes de guardar la nueva. Las contraseñas nunca se muestran en el listado de usuarios.</p>
    </section>
    <section style={{...box,marginTop:16}}>
     <h2 style={{fontSize:15}}>Crear una cuenta de acceso</h2>
