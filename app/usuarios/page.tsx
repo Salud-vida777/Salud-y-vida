@@ -83,15 +83,13 @@ export default function UsersPage(){
    const {error:checkError}=await passwordChecker.auth.signInWithPassword({email:verifyEmail,password:currentPassword});
    await passwordChecker.auth.signOut();
    if(checkError)throw new Error("La contraseña actual no es correcta. No se ha cambiado ninguna contraseña.");
-   // Reauthenticate using an isolated client explicitly initialized with the administrator's active session.
+   // Reauthenticate on the same Supabase client that owns the active browser session.
+   // Copying tokens to a separate client can fail with "Auth session missing".
    const {data:{session:adminSession},error:sessionError}=await sb.auth.getSession();
-   if(sessionError||!adminSession?.access_token||!adminSession.refresh_token)throw new Error("La sesión del administrador venció. Cierra sesión, vuelve a entrar y solicita el código otra vez.");
-   const reauthClient=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:true,detectSessionInUrl:false}});
-   const {error:setSessionError}=await reauthClient.auth.setSession({access_token:adminSession.access_token,refresh_token:adminSession.refresh_token});
-   if(setSessionError)throw new Error("No se pudo recuperar la sesión del administrador: "+setSessionError.message);
-   const {error:mailError}=await reauthClient.auth.reauthenticate();
+   if(sessionError||!adminSession?.access_token)throw new Error("La sesión del administrador venció. Cierra sesión, vuelve a entrar y solicita el código otra vez.");
+   const {error:mailError}=await sb.auth.reauthenticate();
    if(mailError)throw new Error("No se pudo enviar el código al correo del administrador: "+mailError.message);
-   reauthClientRef.current=reauthClient;
+   reauthClientRef.current=sb;
    setStep("code");
    setMsg("Código solicitado. Revisa la bandeja de entrada y la carpeta de spam del correo Gmail del administrador.");
   }catch(e){setErr(e instanceof Error?e.message:"No se pudo solicitar el código.");}
