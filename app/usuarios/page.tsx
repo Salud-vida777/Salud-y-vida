@@ -67,7 +67,6 @@ export default function UsersPage(){
   if(!targetId||!currentPassword){setErr("Selecciona una cuenta e ingresa su contraseña actual.");return;}
   if(newPassword.length<8){setErr("La nueva contraseña debe tener al menos 8 caracteres.");return;}
   if(newPassword!==confirmPassword){setErr("Las nuevas contraseñas no coinciden.");return;}
-  if(!myEmail){setErr("La cuenta administradora no tiene correo electrónico asociado.");return;}
   setBusy(true);
   try{
    const sb=getSupabase();
@@ -81,28 +80,22 @@ export default function UsersPage(){
    const key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
    const passwordChecker=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
    const {error:checkError}=await passwordChecker.auth.signInWithPassword({email:verifyEmail,password:currentPassword});
-   await passwordChecker.auth.signOut();
    if(checkError)throw new Error("La contraseña actual no es correcta. No se ha cambiado ninguna contraseña.");
-   // Reauthenticate on the same Supabase client that owns the active browser session.
-   // Copying tokens to a separate client can fail with "Auth session missing".
-   const {data:{session:adminSession},error:sessionError}=await sb.auth.getSession();
-   if(sessionError||!adminSession?.access_token)throw new Error("La sesión del administrador venció. Cierra sesión, vuelve a entrar y solicita el código otra vez.");
-   // Call the reauthentication endpoint with the access token explicitly.
-   // This avoids the SDK's internal session lookup failing despite a valid session
-   // being returned above (reported as "Auth session missing!").
-   const reauthResponse=await fetch(`${url}/auth/v1/reauthenticate`,{
-    method:"POST",
-    headers:{"apikey":key,"Authorization":`Bearer ${adminSession.access_token}`,"Content-Type":"application/json"},
-   });
-   if(!reauthResponse.ok){
-    let detail="No se pudo enviar el código.";
-    try{const payload=await reauthResponse.json();detail=payload.msg||payload.message||payload.error_description||payload.error||detail;}catch{}
-    throw new Error("No se pudo enviar el código al correo del administrador: "+detail);
+   if(targetId===myId){
+    // Update using the freshly authenticated isolated client. This avoids reauthenticate
+    // relying on a browser session whose session_id no longer exists in Auth.
+    const {error:updateError}=await passwordChecker.auth.updateUser({password:newPassword});
+    if(updateError)throw new Error("No se pudo guardar la nueva contraseña: "+updateError.message);
+   }else{
+    await passwordChecker.auth.signOut();
+    const {data,error}=await sb.functions.invoke("admin-password-management",{body:{action:"change",targetId,newPassword}});
+    if(error||data?.error)throw new Error(data?.error||error?.message||"No se pudo cambiar la contraseña del vendedor.");
    }
-   reauthClientRef.current=sb;
-   setStep("code");
-   setMsg("Código solicitado. Revisa la bandeja de entrada y la carpeta de spam del correo Gmail del administrador.");
-  }catch(e){setErr(e instanceof Error?e.message:"No se pudo solicitar el código.");}
+   await passwordChecker.auth.signOut();
+   reauthClientRef.current=null;
+   setStep("password");setCurrentPassword("");setNewPassword("");setConfirmPassword("");setOtp("");
+   setMsg("Contraseña cambiada correctamente.");
+  }catch(e){setErr(e instanceof Error?e.message:"No se pudo cambiar la contraseña.");}
   finally{setBusy(false);}
  }
 
@@ -145,7 +138,7 @@ export default function UsersPage(){
   {loading?<p>Cargando…</p>:!isAdmin?<section style={box}><h2 style={{fontSize:16}}>Configuración inicial</h2><p style={{fontSize:13,lineHeight:1.7,color:"#52635a"}}>Si esta farmacia todavía no tiene un administrador, la primera cuenta autenticada puede reclamar ese rol una sola vez. Hazlo únicamente desde la cuenta del propietario.</p><button onClick={bootstrap} style={btn}>Configurar mi cuenta como primer administrador</button><p style={{fontSize:11,color:"#82918a",marginTop:12}}>Si ya existe un administrador, esta acción será rechazada.</p></section>:<>
    <section style={{...box,marginTop:18}}>
     <h2 style={{fontSize:15}}>Cambiar contraseña del administrador o vendedor</h2>
-    <p style={{fontSize:12,color:"#52635a",lineHeight:1.7}}>Selecciona tu cuenta de administrador o un vendedor activo. Primero se verifica la contraseña actual de esa cuenta; después se envía un código de 6 dígitos al correo del administrador. Solo al validar el código se guarda la nueva contraseña.</p>
+    <p style={{fontSize:12,color:"#52635a",lineHeight:1.7}}>Selecciona tu cuenta de administrador o un vendedor activo. Se verifica la contraseña actual de la cuenta seleccionada y, si es correcta, se guarda la nueva contraseña directamente.</p>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:12,marginTop:12}}>
      <label style={{fontSize:12,fontWeight:700}}>Cuenta
       <select value={targetId} onChange={e=>{setTargetId(e.target.value);resetPasswordFlow();}} style={input}>
@@ -162,15 +155,7 @@ export default function UsersPage(){
       <input type="password" autoComplete="new-password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} style={input} placeholder="Repite la nueva contraseña"/>
      </label>
     </div>
-    {step==="password"?<button disabled={busy} onClick={sendCode} style={{...btn,marginTop:14,opacity:busy?.6:1}}>{busy?"Verificando…":"Verificar contraseña y enviar código al Gmail administrador"}</button>:<div style={{marginTop:14,padding:13,background:"#f2f8f4",borderRadius:10}}>
-      <label style={{display:"block",fontSize:12,fontWeight:700}}>Código de 6 dígitos enviado al correo del administrador
-       <input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,"").slice(0,6))} style={{...input,maxWidth:220,letterSpacing:4,fontSize:18}} placeholder="000000"/>
-      </label>
-      <div style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:12}}>
-       <button disabled={busy} onClick={confirmChange} style={{...btn,opacity:busy?.6:1}}>{busy?"Guardando…":"Confirmar código y cambiar contraseña"}</button>
-       <button disabled={busy} onClick={resetPasswordFlow} style={{padding:11,border:"1px solid #dce7e1",borderRadius:9,background:"white",cursor:"pointer"}}>Cancelar</button>
-      </div>
-    </div>}
+    <button disabled={busy} onClick={sendCode} style={{...btn,marginTop:14,opacity:busy?.6:1}}>{busy?"Guardando…":"Verificar contraseña actual y cambiar contraseña"}</button>
     <p style={{fontSize:10,color:"#82918a",lineHeight:1.6,marginTop:12}}>El código se envía al correo asociado a la cuenta del administrador, no al vendedor. No compartas el código con nadie. Las contraseñas nunca se muestran en el listado de usuarios.</p>
    </section>
    <section style={{...box,marginTop:16}}>
